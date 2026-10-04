@@ -406,7 +406,7 @@ const Road = (() => {
 
   // Vehículo como caja 3D: la cara trasera es el sprite y la delantera se proyecta z+largo más adelante
   // con la misma perspectiva de la pista. Se dibujan costado, capó/maletera, cabina y techo; luego el sprite.
-  function drawBox(ctx, o, sc, sx, sy, f, clipY) {
+  function drawBox(ctx, o, sc, sx, sy, f, clipY, m = 0, far = null) {
     const B = o.box, asp = o.spr.height / o.spr.width;
     const rw = o.w * sc * W / 2, rh = rw * asp, fw = o.w * f.sc * W / 2, fh = fw * asp;
     if (rw < 2) return;
@@ -422,33 +422,71 @@ const Road = (() => {
     const top = (u0, u1, fr, inset, col) => quad(ctx, [at(u0, -1, fr, inset), at(u0, 1, fr, inset), at(u1, 1, fr, inset), at(u1, -1, fr, inset)], col);
     ctx.save();
     ctx.beginPath(); ctx.rect(0, 0, W, clipY); ctx.clip();
+    // de noche, los faros delanteros alumbran la pista por delante del vehículo
+    if (m > 0.05 && far && !B.noLights) {
+      const fl = at(1, -1, 0.75), fr = at(1, 1, 0.75);
+      const spread = (far.sc * o.w * W / 2) * 1.6;
+      ctx.globalCompositeOperation = 'lighter';
+      const prevA = ctx.globalAlpha;
+      ctx.globalAlpha = prevA * m * 0.16;
+      quad(ctx, [fl, fr, [far.x + spread, far.y], [far.x - spread, far.y]], '#ffe8b0');
+      ctx.globalAlpha = prevA;
+      ctx.globalCompositeOperation = 'source-over';
+    }
     // se ve el costado que mira hacia la cámara
     const side = sx < W / 2 - 1 ? 1 : sx > W / 2 + 1 ? -1 : 0;
+    const uEnd = B.nose ? (B.cab ? B.cab[1] : 1) : 1;
     if (side) {
-      face(0, 1, side, 0.96, B.body, 0, B.side);
-      if (B.stripe) face(0, 1, side, B.stripe[0], B.stripe[1], 0, B.stripe[2]);
-      face(0, 1, side, 0.96, 0.9, 0, B.sideD);
+      face(0, uEnd, side, 0.96, B.body, 0, B.side);
+      if (B.sideL) face(0, uEnd, side, B.body + 0.1, B.body, 0, B.sideL);
+      if (B.stripe) face(0, uEnd, side, B.stripe[0], B.stripe[1], 0, B.stripe[2]);
+      face(0, uEnd, side, 0.96, 0.9, 0, B.sideD);
+      // líneas de puertas y manijas
+      if (B.doors) for (const u of B.doors) {
+        face(u, u + 0.012, side, 0.9, B.body + 0.02, 0, B.sideD);
+        face(u + 0.05, u + 0.09, side, B.body + 0.12, B.body + 0.15, 0, B.sideL || B.side);
+      }
       if (B.windows) for (let u = 0.08; u < 0.86; u += 0.2) face(u, u + 0.15, side, B.windows[0], B.windows[1], 0, B.glass);
-      // llantas
+      // llantas con aro y guardabarro
       for (const u of B.wheels) {
-        const [x, y] = at(u, side, 1), [, yt] = at(u, side, 0.78);
-        const ww = Math.max(1, (R.w + (F.w - R.w) * u) * 0.16);
+        const [x, y] = at(u, side, 1), [, yt] = at(u, side, 0.76);
+        const ww = Math.max(1, (R.w + (F.w - R.w) * u) * 0.17);
+        ctx.fillStyle = '#0a0a0e';
+        ctx.fillRect(x - ww / 2 - 0.5, yt - 0.5, ww + 1, 1);
         ctx.fillStyle = '#0e0e12';
         ctx.fillRect(x - ww / 2, yt, ww, y - yt);
-        ctx.fillStyle = '#7d838f';
-        ctx.fillRect(x - ww / 4, yt + (y - yt) * 0.3, ww / 2, (y - yt) * 0.35);
+        ctx.fillStyle = '#9aa0ac';
+        ctx.fillRect(x - ww / 4, yt + (y - yt) * 0.28, ww / 2, (y - yt) * 0.4);
+        ctx.fillStyle = '#5a5d6a';
+        ctx.fillRect(x - ww / 10, yt + (y - yt) * 0.4, ww / 5, (y - yt) * 0.16);
       }
     }
     // capó y maletera
-    top(0, 1, B.body, 0, B.top);
+    top(0, uEnd, B.body, 0, B.top);
     if (B.cab) {
       const [u0, u1] = B.cab;
       if (side) {
         face(u0, u1, side, B.body, B.cabTop, B.inset, B.glass);
-        face(u0 + (u1 - u0) * 0.48, u0 + (u1 - u0) * 0.52, side, B.body, B.cabTop, B.inset, B.roof);
+        // parantes de la cabina
+        for (const p of [u0, u0 + (u1 - u0) * 0.5, u1 - 0.02]) face(p, p + 0.03, side, B.body, B.cabTop, B.inset, B.roof);
+        if (B.mirror) face(u1 - 0.02, u1 + 0.05, side, B.body - 0.02, B.body - 0.09, -0.06, B.side);
       }
       top(u0, u1, B.cabTop, B.inset, B.roof);
+      if (B.rails) {
+        top(u0 + 0.05, u1 - 0.05, B.cabTop - 0.03, B.inset + 0.02, '#2a2b33');
+        top(u0 + 0.05, u1 - 0.05, B.cabTop - 0.03, B.inset + 0.08, B.roof);
+      }
       if (B.cargo) top(0.02, u0 - 0.04, B.body - 0.12, 0.06, B.cargo);
+    }
+    // mototaxi: la moto y el conductor van adelante, al centro
+    if (B.nose) {
+      const u0 = B.cab ? B.cab[1] : 0.6;
+      top(u0, 1, B.body + 0.05, 0.38, '#2a2b33');
+      if (side) face(u0, 1, side, 0.96, B.body + 0.05, 0.38, '#3a3d48');
+      const [hx, hy] = at(u0 + 0.12, -1, 0.12, 0.5);
+      const hr = Math.max(0.5, (R.w + (F.w - R.w) * 0.7) * 0.08);
+      ctx.fillStyle = '#1f2f5a'; ctx.fillRect(hx - hr, hy, hr * 2, hr * 2.4);
+      ctx.fillStyle = '#131318'; ctx.fillRect(hx - hr * 0.8, hy - hr * 1.4, hr * 1.6, hr * 1.5);
     }
     ctx.restore();
   }
@@ -574,7 +612,8 @@ const Road = (() => {
           const f = screenAt(o.z + o.box.len, o.x);
           if (f && f.y < sy) {
             ctx.globalAlpha = seg.fog >= 5 ? 1 - (seg.fog - 4) * 0.2 : 1;
-            drawBox(ctx, o, sc, sx, sy, f, seg.clip);
+            const far = v.night > 0.05 ? screenAt(o.z + o.box.len + SEG * 6, o.x) : null;
+            drawBox(ctx, o, sc, sx, sy, f, seg.clip, v.night, far);
             ctx.globalAlpha = 1;
           }
         }

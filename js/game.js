@@ -1,7 +1,7 @@
 'use strict';
 // MotorsRun - carrera retro en tercera persona por la Costa Verde.
 (() => {
-  const VERSION = 'v1.5.1';
+  const VERSION = 'v1.6.0';
   const W = 384, H = 216;
   const cvs = document.getElementById('game');
   const wrap = document.getElementById('wrap');
@@ -231,10 +231,12 @@
 
   // ---------- Tráfico e ítems ----------
   function spawnCar(z) {
-    const lane = Math.random() * 3 | 0;
-    for (const c of G.cars) if (c.lane === lane && Math.abs(c.z - z) < SEG * 12) return;
     const tpl = SP.cars[Math.random() * SP.cars.length | 0];
-    G.cars.push({ spr: tpl.spr, w: tpl.w, lights: tpl.lights, box: tpl.box, shadow: 0.95, z, x: LANES_X[lane], tx: LANES_X[lane], lane, speed: rand(35, 70) * U, passed: false, hit: false, prevRel: null });
+    // los mototaxis van despacio y casi siempre por el carril derecho
+    const lane = tpl.slow ? (Math.random() < 0.8 ? 2 : 1) : Math.random() * 3 | 0;
+    for (const c of G.cars) if (c.lane === lane && Math.abs(c.z - z) < SEG * 12) return;
+    const speed = (tpl.slow ? rand(25, 40) : rand(40, 75)) * U;
+    G.cars.push({ spr: tpl.spr, w: tpl.w, lights: tpl.lights, box: tpl.box, slow: tpl.slow, shadow: 0.95, z, x: LANES_X[lane], tx: LANES_X[lane], lane, speed, passed: false, hit: false, prevRel: null });
   }
 
   function addItem(kind, z, x) {
@@ -332,10 +334,10 @@
     g.x -= dt * 2 * sp * sp * pSeg.curve * 0.18;
     g.lean += (steer * 0.32 + pSeg.curve * sp * 0.025 - g.lean) * Math.min(1, dt * 8);
 
-    // velocidad: crucero 75 km/h; acelerando llega a la máxima de la moto; el nitro suma 15-20 %
+    // velocidad: crucero según la cilindrada; acelerando llega a la máxima de la moto; el nitro suma 15-20 %
     g.turbo = input.turbo && g.nitro > 0.5 && !g.stall;
     const maxU = bk.max * U;
-    let target = CRUISE_KMH * U;
+    let target = bk.cruise * U;
     if (g.turbo) target = maxU * (1 + bk.nitro);
     else if (input.gas) target = maxU;
     const accel = MAX / 4.5 * bk.accel * (g.turbo ? 1.7 : 1);
@@ -387,7 +389,7 @@
     // tráfico
     for (const c of g.cars) {
       c.z += c.speed * dt;
-      if (Math.random() < dt * 0.12) { c.lane = clamp(c.lane + (Math.random() < 0.5 ? -1 : 1), 0, 2); c.tx = LANES_X[c.lane]; }
+      if (Math.random() < dt * (c.slow ? 0.04 : 0.12)) { c.lane = clamp(c.lane + (Math.random() < 0.5 ? -1 : 1), c.slow ? 1 : 0, 2); c.tx = LANES_X[c.lane]; }
       c.x += clamp(c.tx - c.x, -0.5 * dt, 0.5 * dt);
       const rel = c.z - pz;
       if (!c.passed && rel < -SEG * 0.5) {
@@ -902,15 +904,16 @@
     Pix.rect(ctx, fx - 2, fy - 2, 124, 118, 'rgba(10,6,8,0.75)');
     Pix.rect(ctx, fx - 2, fy - 2, 124, 1, '#c8323a');
     PixelFont.draw(ctx, b.brand, fx, fy + 2, bikeColors(b).light === '#ffffff' ? '#ffd27a' : '#ffd27a');
-    PixelFont.draw(ctx, TYPE_NAME[b.type], fx + 118, fy + 2, '#8a7a80', 1, 'right');
+    PixelFont.draw(ctx, TYPE_NAME[b.type] + ' · ' + b.cc + ' CC', fx + 118, fy + 2, '#8a7a80', 1, 'right');
     const big = PixelFont.width(b.model, 2) <= 118;
     PixelFont.outline(ctx, b.model, fx, fy + 11, '#fff2d0', '#1a0a0a', big ? 2 : 1, 'left');
-    const sy = fy + 32;
-    statBar(fx, sy, 'VEL. MÁXIMA', b.max + ' KM/H', b.max / 230, '#ff5a4a');
-    statBar(fx, sy + 16, 'CON NITRO', Math.round(b.max * (1 + b.nitro)) + ' KM/H', b.max * (1 + b.nitro) / 270, '#5ad1ff');
-    statBar(fx, sy + 32, 'ACELERACIÓN', Math.round(b.accel * 100) + '', b.accel / 1.8, '#ffd23f');
-    statBar(fx, sy + 48, 'MANEJO', Math.round(b.grip * 100) + '', b.grip / 1.45, '#7dff9a');
-    PixelFont.draw(ctx, b.type === 'adventure' ? 'BUENA EN LA ARENA' : 'CRUCERO ' + CRUISE_KMH + ' KM/H', fx, sy + 66, '#b8a888');
+    const sy = fy + 28;
+    statBar(fx, sy, 'CRUCERO', b.cruise + ' KM/H', b.cruise / 120, '#f0e2c0');
+    statBar(fx, sy + 14, 'VEL. MÁXIMA', b.max + ' KM/H', b.max / 230, '#ff5a4a');
+    statBar(fx, sy + 28, 'CON NITRO', Math.round(b.max * (1 + b.nitro)) + ' KM/H', b.max * (1 + b.nitro) / 270, '#5ad1ff');
+    statBar(fx, sy + 42, 'ACELERACIÓN', Math.round(b.accel * 100) + '', b.accel / 1.8, '#ffd23f');
+    statBar(fx, sy + 56, 'MANEJO', Math.round(b.grip * 100) + '', b.grip / 1.45, '#7dff9a');
+    if (b.type === 'adventure') PixelFont.draw(ctx, 'BUENA EN LA ARENA', fx, sy + 72, '#b8a888');
 
     // billetera y compra
     Pix.rect(ctx, 282, 128, 96, 46, 'rgba(10,6,8,0.75)');

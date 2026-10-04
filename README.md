@@ -7,7 +7,7 @@ al rato cae la noche y se prenden los postes, las luces de la ciudad y los stops
 
 > *Disciplina hoy, libertad mañana. Sueña · Planifica · Trabaja · Logra. Ride safe.*
 
-**Versión actual: v1.5.1.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
+**Versión actual: v1.6.0.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
 
 ## Jugar online
 
@@ -32,28 +32,28 @@ También puedes abrir `index.html` directo en cualquier navegador moderno. No ne
 
 ## Velocidad y motos
 
-- Sin acelerar, la moto va a **75 km/h** (crucero).
+- Sin acelerar, la moto va a su **velocidad crucero**, que depende de la cilindrada (de 55 km/h en una 125 cc a 120 km/h en la MT-09).
 - Acelerando llega a la **velocidad máxima de cada moto**.
 - El **nitro** da entre **15 % y 20 % más** sobre la máxima, según la moto.
 
-| Moto | Tipo | Precio | Máx. | Con nitro |
-|---|---|---|---|---|
-| Yamaha YB125 Chacarera | Clásica | Inicial | 95 km/h | +15 % |
-| Suzuki GN 125 | Clásica | S/ 120 | 100 km/h | +15 % |
-| Suzuki Gixxer 150 | Naked | S/ 250 | 115 km/h | +16 % |
-| Yamaha FZ-S 4.0 | Naked | S/ 400 | 120 km/h | +16 % |
-| Yamaha MT-15 | Naked | S/ 600 | 130 km/h | +17 % |
-| CFMOTO 250NK | Naked | S/ 850 | 140 km/h | +17 % |
-| Suzuki V-Strom 250 SX | Aventura | S/ 1150 | 135 km/h | +17 % |
-| Suzuki Gixxer SF 250 | Deportiva | S/ 1500 | 150 km/h | +18 % |
-| KTM 250 Duke | Naked | S/ 1900 | 150 km/h | +18 % |
-| Yamaha MT-03 | Naked | S/ 2400 | 170 km/h | +18 % |
-| KTM 390 Duke | Naked | S/ 3000 | 175 km/h | +19 % |
-| Yamaha YZF-R3 | Deportiva | S/ 3800 | 185 km/h | +19 % |
-| CFMOTO 450SRS | Deportiva | S/ 4800 | 195 km/h | +19 % |
-| Yamaha Ténéré 700 | Aventura | S/ 6000 | 190 km/h | +20 % |
-| CFMOTO 675SRR | Deportiva | S/ 7500 | 215 km/h | +20 % |
-| Yamaha MT-09 | Naked | S/ 9000 | 225 km/h | +20 % |
+| Moto | Tipo | Cilindrada | Precio | Crucero | Máx. | Nitro |
+|---|---|---|---|---|---|---|
+| Yamaha YB125 Chacarera | Clásica | 125 cc | Inicial | 55 km/h | 95 km/h | +15 % |
+| Suzuki GN 125 | Clásica | 125 cc | S/ 120 | 55 km/h | 100 km/h | +15 % |
+| Suzuki Gixxer 150 | Naked | 155 cc | S/ 250 | 65 km/h | 115 km/h | +16 % |
+| Yamaha FZ-S 4.0 | Naked | 149 cc | S/ 400 | 65 km/h | 120 km/h | +16 % |
+| Yamaha MT-15 | Naked | 155 cc | S/ 600 | 70 km/h | 130 km/h | +17 % |
+| CFMOTO 250NK | Naked | 250 cc | S/ 850 | 80 km/h | 140 km/h | +17 % |
+| Suzuki V-Strom 250 SX | Aventura | 249 cc | S/ 1150 | 80 km/h | 135 km/h | +17 % |
+| Suzuki Gixxer SF 250 | Deportiva | 249 cc | S/ 1500 | 85 km/h | 150 km/h | +18 % |
+| KTM 250 Duke | Naked | 249 cc | S/ 1900 | 85 km/h | 150 km/h | +18 % |
+| Yamaha MT-03 | Naked | 321 cc | S/ 2400 | 90 km/h | 170 km/h | +18 % |
+| KTM 390 Duke | Naked | 373 cc | S/ 3000 | 95 km/h | 175 km/h | +19 % |
+| Yamaha YZF-R3 | Deportiva | 321 cc | S/ 3800 | 95 km/h | 185 km/h | +19 % |
+| CFMOTO 450SRS | Deportiva | 450 cc | S/ 4800 | 100 km/h | 195 km/h | +19 % |
+| Yamaha Ténéré 700 | Aventura | 689 cc | S/ 6000 | 105 km/h | 190 km/h | +20 % |
+| CFMOTO 675SRR | Deportiva | 675 cc | S/ 7500 | 110 km/h | 215 km/h | +20 % |
+| Yamaha MT-09 | Naked | 890 cc | S/ 9000 | 120 km/h | 225 km/h | +20 % |
 
 Las motos más caras también aceleran más y tienen mejor manejo en curvas.
 Las de **aventura** pierden menos velocidad en la arena.
@@ -65,7 +65,8 @@ Las de **aventura** pierden menos velocidad en la arena.
   con dos enfermeros y camilla, o la moto se incendia.
 - **La arena frena.** Salirte de la pista a la playa o al jardín te quita velocidad.
 - **Curvas:** a toda velocidad la fuerza centrífuga te saca; suelta el acelerador o frena.
-- **Tráfico limeño:** taxis, escarabajos, combis "Chorrillos" y camionetas que cambian de carril.
+- **Tráfico limeño:** taxis, autos, SUV, escarabajos, combis "Chorrillos", camionetas y **mototaxis**
+  (estos van despacio y por el carril derecho).
 - **¡Rozón!** Pasar muy cerca de un carro a más de 100 km/h da +50.
 - **Gasolina:** se acaba con el tiempo (más rápido con nitro). Recoge bidones rojos.
 - **Nitro:** botellas azules (+40) y cada moneda (+3). El nitro duplica los puntos.

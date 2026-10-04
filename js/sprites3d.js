@@ -226,22 +226,105 @@ const Sprites3D = (() => {
   }
 
   // ---------- Tráfico (vistos desde atrás) ----------
-  function taxi() {
+  // Sedán visto desde atrás (taxi limeño o auto particular)
+  function sedan(body, isTaxi) {
     const { c, g } = Pix.canvas(48, 34);
+    const L = shadeHex(body, 1.12, 22), Dk = shadeHex(body, 0.72), Dd = shadeHex(body, 0.5);
     Pix.rect(g, 4, 28, 9, 6, '#0e0e12'); Pix.rect(g, 35, 28, 9, 6, '#0e0e12');
-    Pix.poly(g, [[8, 13], [12, 4], [36, 4], [40, 13]], '#f2c230');
-    Pix.poly(g, [[11, 12], [14, 6], [34, 6], [37, 12]], '#2b3b5e');
-    Pix.line(g, 16, 7, 20, 7, '#7a9ad0');
-    Pix.rect(g, 2, 13, 44, 15, '#f2c230');
-    Pix.rect(g, 2, 13, 44, 1, '#ffe07a');
-    Pix.rect(g, 16, 1, 16, 4, '#f4f4f4'); Pix.rect(g, 17, 2, 14, 1, '#d01c1f');
-    for (let x = 2; x < 46; x += 2) { Pix.rect(g, x, 20, 1, 1, (x >> 1) % 2 ? '#111' : '#f4f4f4'); Pix.rect(g, x + 1, 20, 1, 1, (x >> 1) % 2 ? '#f4f4f4' : '#111'); Pix.rect(g, x, 21, 1, 1, (x >> 1) % 2 ? '#f4f4f4' : '#111'); Pix.rect(g, x + 1, 21, 1, 1, (x >> 1) % 2 ? '#111' : '#f4f4f4'); }
+    Pix.rect(g, 5, 29, 2, 3, '#2a2a32'); Pix.rect(g, 41, 29, 2, 3, '#2a2a32');
+    // cabina y luneta con desempañador
+    Pix.poly(g, [[8, 13], [12, 4], [36, 4], [40, 13]], body);
+    Pix.line(g, 12, 4, 36, 4, L);
+    Pix.poly(g, [[11, 12], [14, 6], [34, 6], [37, 12]], '#26344f');
+    for (const y of [8, 10]) Pix.line(g, 14, y, 34, y, '#3a4a6a');
+    Pix.line(g, 15, 7, 21, 7, '#8aa8d8'); Pix.px(g, 31, 11, '#8aa8d8');
+    Pix.rect(g, 21, 5, 6, 1, '#ff3030');
+    // carrocería con brillo arriba y sombra abajo
+    Pix.rect(g, 2, 13, 44, 15, body);
+    Pix.rect(g, 2, 13, 44, 2, L);
+    Pix.rect(g, 2, 24, 44, 2, Dk);
+    Pix.rect(g, 12, 15, 24, 1, Dk); Pix.rect(g, 12, 15, 1, 6, Dk); Pix.rect(g, 35, 15, 1, 6, Dk);
+    if (isTaxi) {
+      Pix.rect(g, 16, 1, 16, 4, '#f4f4f4'); Pix.rect(g, 17, 2, 14, 1, '#d01c1f');
+      for (let x = 2; x < 46; x += 2) {
+        const a = (x >> 1) % 2;
+        Pix.rect(g, x, 20, 1, 1, a ? '#111' : '#f4f4f4'); Pix.rect(g, x + 1, 20, 1, 1, a ? '#f4f4f4' : '#111');
+        Pix.rect(g, x, 21, 1, 1, a ? '#f4f4f4' : '#111'); Pix.rect(g, x + 1, 21, 1, 1, a ? '#111' : '#f4f4f4');
+      }
+    }
+    // faros traseros de dos tonos e intermitentes
     Pix.rect(g, 3, 15, 7, 4, '#c81a1f'); Pix.rect(g, 38, 15, 7, 4, '#c81a1f');
     Pix.rect(g, 4, 16, 3, 1, '#ff8a80'); Pix.rect(g, 39, 16, 3, 1, '#ff8a80');
-    Pix.rect(g, 12, 15, 24, 1, '#b8901f');
-    Pix.rect(g, 19, 22, 10, 5, '#e8e4d0'); Pix.rect(g, 20, 24, 8, 1, '#4a4030');
-    Pix.rect(g, 1, 26, 46, 3, '#c9ced8'); Pix.rect(g, 1, 28, 46, 1, '#7d838f');
-    return { spr: c, w: 420, lights: [[6.5 / 48, 17 / 34], [41.5 / 48, 17 / 34]], box: { len: 900, body: 0.4, cab: [0.12, 0.58], cabTop: 0.1, inset: 0.17, side: '#d8a820', sideD: '#8a6a10', top: '#f2c230', roof: '#e8b820', glass: '#2b3b5e', wheels: [0.16, 0.82], stripe: [0.59, 0.64, '#16161c'] } };
+    Pix.rect(g, 8, 15, 2, 4, '#ffa020'); Pix.rect(g, 38, 15, 2, 4, '#ffa020');
+    Pix.rect(g, 19, 22, 10, 5, '#e8e4d0'); Pix.rect(g, 20, 24, 8, 1, '#4a4030'); Pix.rect(g, 19, 22, 10, 1, '#c9c4b0');
+    // parachoques, escape y sombra
+    Pix.rect(g, 1, 26, 46, 3, '#c9ced8'); Pix.rect(g, 1, 26, 46, 1, '#e8ecf2'); Pix.rect(g, 1, 28, 46, 1, '#7d838f');
+    Pix.rect(g, 36, 29, 3, 2, '#5a5d6a');
+    return {
+      spr: c, w: 420, lights: [[6.5 / 48, 17 / 34], [41.5 / 48, 17 / 34]],
+      box: {
+        len: 900, body: 0.4, cab: [0.12, 0.58], cabTop: 0.1, inset: 0.17, side: Dk, sideL: body, sideD: Dd, top: body, roof: L,
+        glass: '#26344f', wheels: [0.16, 0.82], stripe: isTaxi ? [0.59, 0.64, '#16161c'] : null, doors: [0.3, 0.58], mirror: true,
+      },
+    };
+  }
+
+  // Camioneta SUV alta
+  function suv(body) {
+    const { c, g } = Pix.canvas(50, 40);
+    const L = shadeHex(body, 1.15, 26), Dk = shadeHex(body, 0.7), Dd = shadeHex(body, 0.48);
+    Pix.rect(g, 4, 33, 10, 7, '#0e0e12'); Pix.rect(g, 36, 33, 10, 7, '#0e0e12');
+    Pix.poly(g, [[5, 16], [7, 3], [43, 3], [45, 16]], body);
+    Pix.rect(g, 7, 3, 36, 1, L);
+    Pix.rect(g, 6, 1, 3, 2, '#2a2b33'); Pix.rect(g, 41, 1, 3, 2, '#2a2b33'); Pix.rect(g, 6, 1, 38, 1, '#2a2b33');
+    Pix.poly(g, [[9, 15], [10, 5], [40, 5], [41, 15]], '#26344f');
+    Pix.line(g, 12, 6, 18, 6, '#8aa8d8'); Pix.rect(g, 23, 5, 4, 1, '#ff3030');
+    Pix.rect(g, 3, 16, 44, 16, body); Pix.rect(g, 3, 16, 44, 2, L); Pix.rect(g, 3, 28, 44, 2, Dk);
+    Pix.rect(g, 4, 18, 6, 6, '#c81a1f'); Pix.rect(g, 40, 18, 6, 6, '#c81a1f');
+    Pix.rect(g, 5, 19, 2, 2, '#ff8a80'); Pix.rect(g, 41, 19, 2, 2, '#ff8a80');
+    Pix.disc(g, 25, 22, 4, '#2a2b33'); Pix.disc(g, 25, 22, 3, '#4a4d58');
+    Pix.rect(g, 20, 26, 10, 4, '#e8e4d0');
+    Pix.rect(g, 2, 30, 46, 3, '#2a2b33'); Pix.rect(g, 2, 30, 46, 1, '#4a4d58');
+    return {
+      spr: c, w: 450, lights: [[7 / 50, 21 / 40], [43 / 50, 21 / 40]],
+      box: {
+        len: 980, body: 0.4, cab: [0.05, 0.68], cabTop: 0.07, inset: 0.07, side: Dk, sideL: body, sideD: Dd, top: body, roof: L,
+        glass: '#26344f', wheels: [0.15, 0.82], doors: [0.28, 0.56], mirror: true, rails: true,
+      },
+    };
+  }
+
+  // Mototaxi peruano: moto adelante y cabina con toldo atrás
+  function mototaxi(canopy) {
+    const { c, g } = Pix.canvas(40, 42);
+    const Ck = shadeHex(canopy, 0.7), Cl = shadeHex(canopy, 1.15, 25);
+    Pix.rect(g, 2, 33, 7, 9, '#0e0e12'); Pix.rect(g, 31, 33, 7, 9, '#0e0e12');
+    Pix.rect(g, 4, 35, 3, 4, '#5a5d6a'); Pix.rect(g, 33, 35, 3, 4, '#5a5d6a');
+    // chasis y caja trasera
+    Pix.rect(g, 3, 24, 34, 10, '#2a2b33');
+    Pix.rect(g, 4, 25, 32, 7, canopy); Pix.rect(g, 4, 25, 32, 1, Cl);
+    PixelFont.draw(g, 'MOTOTAXI', 20, 27, '#f4f4f4', 1, 'center');
+    Pix.rect(g, 4, 31, 3, 2, '#ff3030'); Pix.rect(g, 33, 31, 3, 2, '#ff3030');
+    Pix.rect(g, 15, 33, 10, 4, '#e8e4d0'); Pix.rect(g, 16, 34, 8, 1, '#4a4030');
+    // pasajeros vistos por la ventana de plástico
+    Pix.rect(g, 6, 9, 28, 15, '#3a2a20');
+    Pix.disc(g, 13, 15, 3, '#2a1a10'); Pix.rect(g, 10, 18, 7, 6, '#1f5fd0');
+    Pix.disc(g, 26, 14, 3, '#2a1a10'); Pix.rect(g, 23, 17, 7, 7, '#d0b040');
+    Pix.rect(g, 8, 10, 24, 9, 'rgba(180,210,235,0.35)');
+    Pix.line(g, 9, 11, 14, 11, 'rgba(255,255,255,0.6)');
+    // toldo con flecos
+    Pix.rect(g, 3, 4, 2, 21, '#7d838f'); Pix.rect(g, 35, 4, 2, 21, '#7d838f');
+    Pix.rect(g, 5, 5, 30, 4, canopy); Pix.rect(g, 5, 8, 30, 1, Ck);
+    Pix.poly(g, [[1, 5], [39, 5], [36, 0], [4, 0]], canopy);
+    Pix.rect(g, 4, 0, 32, 1, Cl);
+    for (let x = 2; x < 38; x += 3) Pix.rect(g, x, 5, 2, 2, x % 2 ? Ck : '#f4f4f4');
+    return {
+      spr: c, w: 300, slow: true, lights: [[5.5 / 40, 32 / 42], [34.5 / 40, 32 / 42]],
+      box: {
+        len: 560, body: 0.58, cab: [0, 0.62], cabTop: 0.05, inset: 0.04, side: '#2a2b33', sideL: canopy, sideD: '#1a1a20',
+        top: '#2a2b33', roof: canopy, glass: '#3a2a20', wheels: [0.12], nose: true,
+      },
+    };
   }
 
   function beetle(body, shade) {
@@ -467,7 +550,13 @@ const Sprites3D = (() => {
 
   function build() {
     return {
-      cars: [taxi(), taxi(), beetle('#7fb3c8', '#4f8398'), beetle('#f0e2c0', '#b8a888'), beetle('#e07b39', '#a04a1a'), combi(), pickup()].map(EO),
+      cars: [
+        sedan('#f2c230', true), sedan('#f2c230', true), sedan('#e8e8ee', false), sedan('#9aa0ac', false), sedan('#b3161b', false),
+        suv('#1a1a22'), suv('#e8e8ee'),
+        beetle('#7fb3c8', '#4f8398'), beetle('#f0e2c0', '#b8a888'), beetle('#e07b39', '#a04a1a'),
+        combi(), pickup(),
+        mototaxi('#c8323a'), mototaxi('#1f5fd0'), mototaxi('#e8b818'),
+      ].map(EO),
       palms: [palm(1), palm(2), palm(3)].map(E),
       umbrellas: [umbrella('#d83a3a', '#f4ead0'), umbrella('#2aa8a8', '#f4ead0'), umbrella('#ffd23f', '#e07b39')].map(E),
       lifeguard: E(lifeguard()), surf: E(surf()), stall: E(stall()), lamp: E(lamp()),

@@ -1,5 +1,17 @@
 # Versiones de MotorsRun
 
+## v1.6.0: Mototaxis, más tráfico y crucero según cilindrada
+- **Velocidad crucero según la cilindrada** de cada moto, ya no 75 km/h para todas:
+  125 cc → 55 km/h, 150 cc → 65-70, 250 cc → 80-85, 300-400 cc → 90-95, 450 cc → 100, 700 cc → 105-110 y 890 cc → 120 km/h.
+  La tienda muestra la cilindrada y la velocidad crucero de cada moto.
+- **Mototaxis** con toldo rojo, azul o amarillo, flecos, pasajeros en la cabina y el conductor adelante.
+  Van despacio (25-40 km/h) y casi siempre por el carril derecho.
+- Tráfico nuevo: sedán blanco y plateado, auto rojo y SUV negra y blanca.
+- Carros más reales: brillo en la parte alta del costado, líneas de puertas con manijas, parantes de cabina,
+  espejos, llantas con aro, guardabarros, desempañador en la luneta, tercer stop, intermitentes y escape.
+- De noche, los faros delanteros de los vehículos alumbran la pista por delante.
+- Los archivos llevan la versión en su enlace para que el navegador no use copias viejas tras una actualización.
+
 ## v1.5.1: Carros en 3D real
 - Los vehículos ya no usan un panel lateral aproximado (se veía descuadrado). Ahora cada uno es una **caja 3D**:
   la parte trasera es el sprite y la delantera se proyecta con la misma perspectiva de la pista.

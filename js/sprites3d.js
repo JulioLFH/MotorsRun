@@ -174,6 +174,38 @@ const Sprites3D = (() => {
     return { frames, lying: lie.c };
   }
 
+  // Enfermero (paramédico) caminando, visto de espaldas
+  function medic(f) {
+    const { c, g } = Pix.canvas(22, 40);
+    const PANT = '#1f2f5a', WH = '#f4f4f4', SH = '#c9ced8', SKIN = '#c99a6a';
+    const l1 = f ? 10 : 12, l2 = f ? 12 : 10;
+    Pix.rect(g, 7, 28, 3, l1, PANT); Pix.rect(g, 12, 28, 3, l2, PANT);
+    Pix.rect(g, 6, 27 + l1, 5, 2, '#111'); Pix.rect(g, 11, 27 + l2, 5, 2, '#111');
+    Pix.rect(g, 5, 13, 12, 15, WH); Pix.rect(g, 15, 14, 2, 14, SH);
+    Pix.rect(g, 10, 16, 2, 6, '#d01c1f'); Pix.rect(g, 8, 18, 6, 2, '#d01c1f');
+    Pix.rect(g, 3, 14 + (f ? 1 : 0), 2, 11, WH); Pix.rect(g, 17, 14 + (f ? 0 : 1), 2, 11, SH);
+    Pix.rect(g, 3, 25 + (f ? 1 : 0), 2, 2, SKIN); Pix.rect(g, 17, 25 + (f ? 0 : 1), 2, 2, SKIN);
+    Pix.rect(g, 9, 11, 4, 2, SKIN);
+    Pix.disc(g, 11, 7, 4, '#3a2416');
+    Pix.rect(g, 7, 2, 8, 4, WH); Pix.rect(g, 6, 5, 10, 1, SH); Pix.px(g, 11, 3, '#d01c1f');
+    return c;
+  }
+
+  // Dos enfermeros cargando la camilla con el piloto
+  function carry(col) {
+    const { c, g } = Pix.canvas(70, 40);
+    const m = medic(0), m2 = medic(1);
+    Pix.rect(g, 15, 22, 40, 3, '#5a5d6a');
+    Pix.rect(g, 15, 18, 40, 4, '#e07b39'); Pix.rect(g, 15, 18, 40, 1, '#ffa060');
+    Pix.rect(g, 20, 14, 26, 4, '#17171d'); Pix.rect(g, 22, 15, 20, 1, col.main);
+    Pix.rect(g, 18, 15, 3, 3, '#0b0b0f');
+    Pix.disc(g, 49, 15, 3, '#131318'); Pix.rect(g, 46, 14, 6, 1, col.main);
+    Pix.rect(g, 20, 17, 30, 2, '#e8e4d8');
+    g.drawImage(m, 0, 0); g.drawImage(m2, 48, 0);
+    Pix.rect(g, 14, 20, 4, 2, '#c99a6a'); Pix.rect(g, 52, 20, 4, 2, '#c99a6a');
+    return c;
+  }
+
   function ambulance() {
     const { c, g } = Pix.canvas(52, 52);
     Pix.rect(g, 5, 45, 10, 7, '#0e0e12'); Pix.rect(g, 37, 45, 10, 7, '#0e0e12');
@@ -445,11 +477,13 @@ const Sprites3D = (() => {
       coin: [0, 1, 2, 3].map(f => E(coin(f))), fuel: E(fuel()), nitro: E(nitro()),
       glowWarm: glow(255, 200, 120, 1), glowRed: glow(255, 40, 40, 1), glowWhite: glow(255, 240, 200, 1),
       glowBlue: glow(60, 120, 255, 1), ambulance: EO(ambulance()),
+      medic: [E(medic(0)), E(medic(1))],
     };
   }
+  const carryHD = b => E(carry(bikeColors(b)));
 
   const rearSetHD = b => { const s = rearSet(b); return { ride: s.ride.map(E), empty: E(s.empty) }; };
   const flyingRiderHD = b => { const r = flyingRider(b); return { frames: r.frames.map(E), lying: E(r.lying) }; };
 
-  return { build, bike, rearSet: rearSetHD, flyingRider: flyingRiderHD };
+  return { build, bike, rearSet: rearSetHD, flyingRider: flyingRiderHD, carry: carryHD };
 })();

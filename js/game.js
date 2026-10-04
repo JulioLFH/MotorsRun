@@ -1,7 +1,7 @@
 'use strict';
 // MotorsRun - carrera retro en tercera persona por la Costa Verde.
 (() => {
-  const VERSION = 'v1.4.0';
+  const VERSION = 'v1.5.0';
   const W = 384, H = 216;
   const cvs = document.getElementById('game');
   const wrap = document.getElementById('wrap');
@@ -31,7 +31,7 @@
 
   const cache = new Map();
   function art(b) {
-    if (!cache.has(b.id)) cache.set(b.id, { side: Pix.enhance(Sprites.sideBike(b)), rear: Sprites3D.rearSet(b), rider: Sprites3D.flyingRider(b) });
+    if (!cache.has(b.id)) cache.set(b.id, { side: Pix.enhance(Sprites.sideBike(b)), rear: Sprites3D.rearSet(b), rider: Sprites3D.flyingRider(b), carry: Sprites3D.carry(b) });
     return cache.get(b.id);
   }
   let ART = art(curBike());
@@ -265,19 +265,49 @@
     if (g.lives <= 0) startCrash(text);
   }
 
-  // Choque final: el piloto sale volando y lo recoge la ambulancia
+  // ---------- Choque final: tres finales distintos ----------
+  //  fly       : cámara lenta y el piloto sale volando alto y lejos
+  //  ambulance : cae, llega la ambulancia y dos enfermeros lo suben en camilla
+  //  fire      : explosión y la moto se incendia
+  let lastEnding = null, forcedEnding = null;
+  function pickEnding(text) {
+    if (forcedEnding) return forcedEnding;
+    let opts = ['fly', 'ambulance', 'fire'];
+    if (text === '¡AL MAR!') opts = ['fly', 'ambulance'];
+    else if (text === '¡CHOCASTE!' && Math.random() < 0.45 && lastEnding !== 'fire') return 'fire';
+    const pool = opts.filter(k => k !== lastEnding);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   function startCrash(text) {
     const g = G;
+    const kind = pickEnding(text);
+    lastEnding = kind;
     state = 'crash'; stateT = 0;
-    g.reason = text === '¡AL MAR!' ? '¡AL MAR!' : '¡TE CAÍSTE!';
     g.slide = g.x < 0 ? -1 : 1;
     g.shake = 0.7;
     Sound.crash(); Sound.engineOff();
-    g.crash = {
-      t: 0, phase: 'fly', amb: null,
-      rider: { z: g.dist + PZ + SEG * 0.3, x: clamp(g.x, -1.6, 1.6), lift: 60, vl: 1500, vz: clamp(g.speed * 0.35, 1400, 2600), spr: ART.rider.frames[0], w: 300, gone: false },
-    };
-    float(W / 2, H - 90, '¡SALISTE VOLANDO!', '#ff5a4a');
+    const rider = { z: g.dist + PZ + SEG * 0.3, x: clamp(g.x, -1.6, 1.6), lift: 60, vl: 1500, vz: clamp(g.speed * 0.35, 1400, 2600), spr: ART.rider.frames[0], w: 300, gone: false };
+    g.crash = { kind, t: 0, phase: 'fly', amb: null, medics: null, rider, flash: 0 };
+    if (kind === 'fly') {
+      rider.vl = 3400; rider.vz = clamp(g.speed * 0.6, 3200, 6000); rider.x = clamp(g.x * 0.6, -1.2, 1.2);
+      g.reason = text === '¡AL MAR!' ? '¡AL MAR!' : '¡SALISTE VOLANDO!';
+      Sound.whooshUp();
+      float(W / 2, H - 90, '¡SALISTE VOLANDO!', '#ff5a4a');
+    } else if (kind === 'fire') {
+      rider.vl = 900; rider.vz = 700; rider.x = clamp(g.x + (g.slide > 0 ? -0.5 : 0.5), -1.6, 1.6);
+      g.reason = '¡MOTO EN LLAMAS!';
+      g.crash.flash = 1; g.shake = 1.1;
+      Sound.boom();
+      for (let i = 0; i < 60; i++) {
+        const a = rand(0, Math.PI * 2), v = rand(60, 260);
+        part({ x: W / 2, y: H - 22, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, life: rand(0.4, 1), color: ['#fff2a0', '#ffd23f', '#ff9a1a', '#ff5a1a'][i % 4], size: rand(1, 3), grav: 200 });
+      }
+      float(W / 2, H - 100, '¡BOOM!', '#ffd23f');
+    } else {
+      g.reason = text === '¡AL MAR!' ? '¡AL MAR!' : '¡TE CAÍSTE!';
+      float(W / 2, H - 90, '¡TE CAÍSTE!', '#ff5a4a');
+    }
   }
 
   // ---------- Actualización ----------
@@ -448,41 +478,113 @@
     // el piloto vuela, cae y se desliza
     if (c.phase === 'fly') {
       r.z += r.vz * dt; r.vl -= 3600 * dt; r.lift += r.vl * dt;
-      r.spr = ART.rider.frames[Math.floor(c.t * 14) % 8];
-      if (r.lift <= 0) { r.lift = 0; c.phase = 'down'; r.spr = ART.rider.lying; r.w = 360; Sound.thud(); g.shake = 0.25; }
+      r.spr = ART.rider.frames[Math.floor(c.t * (c.kind === 'fly' ? 18 : 14)) % 8];
+      if (r.lift <= 0) {
+        r.lift = 0; c.phase = 'down'; c.downT = c.t; r.spr = ART.rider.lying; r.w = 360;
+        Sound.thud(); g.shake = c.kind === 'fly' ? 0.45 : 0.25;
+        if (c.kind === 'fly') float(W / 2, 70, '¡AUCH!', '#fff2d0');
+      }
     } else {
       r.vz = Math.max(0, r.vz - 7000 * dt); r.z += r.vz * dt;
     }
 
-    // llega la ambulancia con la sirena, lo sube y se va
+    if (c.kind === 'fly') {
+      if (c.phase === 'down' && c.t - c.downT > 2) gameOver(g.reason);
+      return;
+    }
+    if (c.kind === 'fire') { updateFire(dt, c); return; }
+    updateAmbulance(dt, c, r, pz);
+  }
+
+  // Final 3: la moto se incendia
+  function updateFire(dt, c) {
+    const g = G;
+    c.flash = Math.max(0, c.flash - dt * 2.5);
+    const bx = W / 2 + g.slide * Math.min(stateT, 1.5) * 20, by = H - 8;
+    const k = Math.min(1, 0.4 + c.t * 0.4);
+    for (let i = 0; i < 9 * k; i++) {
+      part({ x: bx + rand(-18, 18), y: by - rand(0, 16), vx: rand(-14, 14), vy: rand(-110, -40), life: rand(0.4, 0.9), color: ['#fff2a0', '#ffd23f', '#ff9a1a', '#ff5a1a', '#d0201a'][Math.random() * 5 | 0], size: rand(2.5, 6), grow: -4.5, fire: true });
+    }
+    if (Math.random() < 0.6) part({ x: bx + rand(-10, 10), y: by - 22, vx: rand(-8, 14), vy: rand(-40, -22), life: rand(1, 1.8), color: 'rgba(40,30,36,0.55)', size: 3, grow: 9 });
+    if (Math.random() < dt * 4) sparks(bx + rand(-8, 8), by - 10, 3);
+    if (Math.random() < dt * 14) Sound.crackle();
+    if (c.t > 1.2 && !c.banner) { c.banner = true; banner('¡SE INCENDIÓ LA MOTO!', 'EL PILOTO SE SALVÓ DE MILAGRO'); }
+    if (c.t > 5.2) gameOver(g.reason);
+  }
+
+  // Final 2: llega la ambulancia, bajan dos enfermeros con camilla, lo suben y se van
+  function updateAmbulance(dt, c, r, pz) {
+    const g = G;
     if (!c.amb && c.t > 1.5) {
       const A = SP.ambulance;
-      c.amb = { spr: A.spr, w: A.w, lights: A.lights, side: A.side, shadow: 0.95, z: pz - PZ * 0.6, x: clamp(r.x + 0.4, -1, 1), speed: 8500, phase: 'come', loadT: 0, beacons: [] };
+      // se estaciona al costado del piloto para que los enfermeros caminen junto a ella
+      const ax = clamp(r.x + (r.x > 0 ? -0.55 : 0.55), -1, 1);
+      c.amb = { spr: A.spr, w: A.w, lights: A.lights, side: A.side, shadow: 0.95, z: pz - PZ * 0.6, x: ax, tx: ax, speed: 8500, phase: 'come', t: 0, beacons: [] };
       Sound.sirenOn();
       banner('¡AMBULANCIA!', 'TRANQUILO, YA TE RECOGEN');
     }
     const a = c.amb;
-    if (a) {
-      const on = Math.floor(t * 6) % 2 === 0;
-      a.beacons = on ? [[0.36, 0.04, false]] : [[0.64, 0.04, true]];
-      if (a.phase === 'come') {
-        const d = (r.z - SEG * 1.1) - a.z;
-        a.speed = clamp(d * 2.4, 0, 8500);
-        a.z += a.speed * dt;
-        a.x += (clamp(r.x + 0.35, -1, 1) - a.x) * Math.min(1, dt * 2);
-        if (d < 40 && r.vz === 0) a.phase = 'load';
-      } else if (a.phase === 'load') {
-        a.loadT += dt;
-        if (a.loadT > 1.1 && !r.gone) { r.gone = true; float(W / 2, 90, '¡ARRIBA, CAMPEÓN!', '#fff2d0'); Sound.select(); }
-        if (a.loadT > 1.9) a.phase = 'leave';
-      } else {
-        a.speed = Math.min(9000, a.speed + 5000 * dt);
-        a.z += a.speed * dt;
+    if (!a) return;
+    a.t += dt;
+    const on = Math.floor(t * 6) % 2 === 0;
+    a.beacons = on ? [[0.36, 0.04, false]] : [[0.64, 0.04, true]];
+    const stopZ = r.z - SEG * 2.2;
+    const walk = Math.floor(t * 6) % 2;
+
+    if (a.phase === 'come') {
+      const d = stopZ - a.z;
+      a.speed = clamp(d * 2.4, 0, 8500);
+      a.z += a.speed * dt;
+      a.x += (a.tx - a.x) * Math.min(1, dt * 2);
+      if (d < 40 && r.vz === 0) { a.phase = 'doors'; a.t = 0; }
+    } else if (a.phase === 'doors') {
+      if (a.t > 0.5) {
+        Sound.door();
+        // bajan los dos enfermeros por las puertas traseras
+        c.medics = [-1, 1].map(s => ({ spr: SP.medic[0], w: 150, x: a.x + s * 0.14, z: a.z - SEG * 0.3, shadow: 0.8, side: null, tx: r.x + s * 0.16 }));
+        a.phase = 'walk'; a.t = 0;
+        float(W / 2, 70, '¡BAJAN LOS ENFERMEROS!', '#fff2d0');
       }
-      Sound.sirenLevel(clamp(1 - (a.z - pz) / (SEG * 140), 0.1, 1));
-      if (a.phase === 'leave' && a.z - pz > SEG * 110) { gameOver(g.reason); return; }
+    } else if (a.phase === 'walk') {
+      let arrived = true;
+      for (const m of c.medics) {
+        const goal = r.z - SEG * 0.35;
+        if (m.z < goal) { m.z = Math.min(goal, m.z + 900 * dt); arrived = false; }
+        // primero se apartan de la ambulancia y luego caminan hacia el piloto
+        m.x += (m.tx - m.x) * Math.min(1, dt * (m.z > a.z + SEG * 0.6 ? 3 : 1.2));
+        m.spr = SP.medic[m.z < goal ? walk : 0];
+      }
+      if (arrived) { a.phase = 'pickup'; a.t = 0; }
+    } else if (a.phase === 'pickup') {
+      if (a.t > 0.9) {
+        r.gone = true;
+        c.medics = null;
+        c.carry = { spr: ART.carry, w: 480, x: r.x, z: r.z - SEG * 0.2, shadow: 0.9, side: null };
+        a.phase = 'carry'; a.t = 0;
+        float(W / 2, 70, '¡A LA CAMILLA!', '#fff2d0');
+        Sound.select();
+      }
+    } else if (a.phase === 'carry') {
+      // regresan con la camilla hasta las puertas traseras
+      const goal = a.z - SEG * 0.3;
+      c.carry.z = Math.max(goal, c.carry.z - 700 * dt);
+      const near = c.carry.z < a.z + SEG * 0.8;
+      c.carry.x += ((near ? a.x : r.x) - c.carry.x) * Math.min(1, dt * 1.8);
+      c.carry.lift = Math.abs(Math.sin(t * 9)) * 12;
+      if (c.carry.z <= goal) {
+        c.carry = null; Sound.door();
+        float(W / 2, 70, '¡ARRIBA, CAMPEÓN!', '#fff2d0');
+        a.phase = 'close'; a.t = 0;
+      }
+    } else if (a.phase === 'close') {
+      if (a.t > 0.6) { a.phase = 'leave'; a.t = 0; }
+    } else {
+      a.speed = Math.min(9000, a.speed + 5000 * dt);
+      a.z += a.speed * dt;
     }
-    if (c.t > 12) gameOver(g.reason);
+    Sound.sirenLevel(clamp(1 - (a.z - pz) / (SEG * 140), 0.1, 1));
+    if (a.phase === 'leave' && a.z - pz > SEG * 110) { gameOver(g.reason); return; }
+    if (c.t > 20) gameOver(g.reason);
   }
 
   function updateCommon(dt) {
@@ -497,7 +599,11 @@
 
   function update(dt) {
     if (state === 'play') { updatePlay(dt); updateCommon(dt); }
-    else if (state === 'crash') { updateCrash(dt); updateCommon(dt); }
+    else if (state === 'crash') {
+      // cámara lenta mientras el piloto sale volando
+      const slow = G.crash && G.crash.kind === 'fly' && G.crash.phase === 'fly' ? 0.45 : 1;
+      updateCrash(dt * slow); updateCommon(dt * slow);
+    }
     if (shop.msgT > 0) shop.msgT -= dt;
   }
 
@@ -544,6 +650,7 @@
   function drawParticles() {
     for (const q of G.parts) {
       ctx.globalAlpha = Math.min(1, (q.life / q.max) * 1.4);
+      ctx.globalCompositeOperation = q.fire ? 'lighter' : 'source-over';
       ctx.fillStyle = q.color;
       if (q.streak) {
         const l = Math.hypot(q.vx, q.vy), ux = q.vx / l, uy = q.vy / l;
@@ -554,6 +661,7 @@
       }
     }
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
   }
 
   function drawHUD() {
@@ -654,13 +762,30 @@
     }
     const objs = g.cars.concat(g.items);
     if (g.crash) {
-      if (!g.crash.rider.gone) objs.push(g.crash.rider);
-      if (g.crash.amb) objs.push(g.crash.amb);
+      const c = g.crash;
+      if (!c.rider.gone) objs.push(c.rider);
+      if (c.amb) objs.push(c.amb);
+      if (c.medics) objs.push(...c.medics);
+      if (c.carry) objs.push(c.carry);
     }
     Road.render(ctx, { dist: g.dist, x: g.x, t, night: g.night, skyOff: g.skyOff, hillOff: g.hillOff, objs });
+    const fire = g.crash && g.crash.kind === 'fire';
+    if (fire) {
+      // resplandor del incendio sobre la pista
+      const bx = W / 2 + g.slide * Math.min(stateT, 1.5) * 20;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.55 + Math.sin(t * 23) * 0.12;
+      ctx.drawImage(SP.glowWarm, bx - 70, H - 80, 140, 110);
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
     drawBike();
     drawParticles();
     ctx.restore();
+    if (fire && g.crash.flash > 0) {
+      ctx.fillStyle = `rgba(255,240,200,${g.crash.flash * 0.75})`;
+      ctx.fillRect(0, 0, W, H);
+    }
     drawHUD();
     drawFloats();
     drawBanner();
@@ -691,7 +816,8 @@
       if (i < ph) { Pix.rect(ctx, px, py + i, 3, 5, col); Pix.rect(ctx, px + pw - 3, py + ph - i - 5, 3, 5, col); }
     }
     PixelFont.draw(ctx, 'SALUDOS DESDE LA COSTA VERDE', px + 10, py + 9, '#7a5a3a');
-    PixelFont.outline(ctx, g.reason, px + 11, py + 20, '#c8323a', '#5a0a0e', 3, 'left');
+    const rs = PixelFont.width(g.reason, 3) <= 180 ? 3 : 2;
+    PixelFont.outline(ctx, g.reason, px + 11, py + (rs === 3 ? 20 : 23), '#c8323a', '#5a0a0e', rs, 'left');
 
     const sx = px + pw - 50, sy = py + 8;
     Pix.rect(ctx, sx, sy, 40, 46, '#fff8e8');
@@ -974,6 +1100,7 @@
   window.MotorsRun = {
     VERSION,
     get state() { return state; }, get G() { return G; }, startGame, openShop, input, keys, syncInput,
+    forceEnding(k) { forcedEnding = k || null; },
     tick(sec) { for (let i = 0; i < sec * 60; i++) { t += 1 / 60; stateT += 1 / 60; update(1 / 60); } render(); },
   };
 })();

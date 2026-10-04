@@ -147,7 +147,11 @@ const Sound = (() => {
     setTimeout(() => { try { s.o.stop(); } catch (e) { /* ya detenido */ } }, 800);
   }
   fx.thud = () => { noise(0.25, 0.5, 300); tone(90, 0.25, 'sine', 0.3, 40); };
-  fx.cash = () => seq([1047, 1319, 1568, 2093], 0.06, 'square', 0.08, 0.12);
+  fx.boom = () => { noise(1.6, 0.8, 380); noise(0.4, 0.5, 2500); tone(70, 1.2, 'sawtooth', 0.25, 25); };
+  fx.crackle = () => noise(0.04 + Math.random() * 0.05, 0.05 + Math.random() * 0.06, 2500 + Math.random() * 3000);
+  fx.door = () => { noise(0.12, 0.3, 500); tone(140, 0.1, 'square', 0.08, 90); };
+  fx.whooshUp = () => { noise(0.6, 0.25, 4000); tone(300, 0.6, 'triangle', 0.08, 1200); };
+  fx.cash =() => seq([1047, 1319, 1568, 2093], 0.06, 'square', 0.08, 0.12);
   fx.denied = () => { tone(220, 0.15, 'square', 0.1); tone(170, 0.25, 'square', 0.1, null, 0.12); };
 
   const api = { init, engineOn, sirenOn, sirenOff, sirenLevel, engineSet, engineOff: () => engineSet(0, false, false), musicStart, musicStop, setMuted };

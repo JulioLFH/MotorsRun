@@ -1,5 +1,15 @@
 # Versiones de MotorsRun
 
+## v1.5.0: Tres finales de choque
+Al perder el tercer casco sale al azar uno de tres finales (nunca el mismo dos veces seguidas):
+- **¡Saliste volando!** Cámara lenta, el piloto sale disparado alto y lejos dando vueltas y cae a lo lejos.
+- **La ambulancia:** llega con sirena y balizas, se estaciona al costado, **bajan dos enfermeros**,
+  caminan hasta el piloto, lo suben a la **camilla**, lo llevan a las puertas traseras y se van.
+- **¡Moto en llamas!** Explosión con destello y sacudida, la moto arde con llamas, humo y chispas,
+  se oye el fuego crepitar y el piloto queda a un lado.
+- Chocar contra un carro hace más probable el incendio; caer al mar nunca termina en incendio.
+- Cualquier final se puede saltar con Enter o tocando la pantalla.
+
 ## v1.4.0: Efecto 3D
 - El acantilado de la Costa Verde ahora es una **pared continua en 3D** proyectada en perspectiva junto a la pista,
   con altura variable, vetas de roca, franjas de vegetación y sombra al pie.

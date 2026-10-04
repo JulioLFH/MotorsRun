@@ -145,7 +145,7 @@ const Garage = (() => {
     PixelFont.draw(g, 'SAFE', 333, 187, '#c9ccd4');
     Pix.ring(g, 366, 185, 4, 5, '#c9ccd4'); Pix.rect(g, 367, 183, 3, 2, '#c9ccd4');
 
-    staticC = c;
+    staticC = Pix.enhance(c, { outline: false, shade: false });
     signLima = Sprites.sign(['LIMA, PERÚ >', 'COSTA VERDE'], 40);
   }
 
@@ -165,7 +165,7 @@ const Garage = (() => {
     ctx.drawImage(signLima, 318, 150 - signLima.height);
     ctx.restore();
 
-    ctx.drawImage(staticC, 0, 0);
+    ctx.drawImage(staticC, 0, 0, 384, 216);
 
     // luz LED del techo
     ctx.globalCompositeOperation = 'lighter';

@@ -47,6 +47,70 @@ const Pix = {
       for (let dx = -R; dx <= R; dx++)
         if (dx * dx + dy * dy <= rr) g.fillRect(cx + dx, cy + dy, 1, 1);
   },
+  // Duplica la resolución de un sprite con acabado de pixel art:
+  // EPX/Scale2x (suaviza diagonales sin borronear), luz arriba-izquierda, sombra abajo-derecha
+  // y contorno oscuro de 1 píxel. Devuelve un canvas de (2w+2)x(2h+2) si hay contorno.
+  enhance(src, opt = {}) {
+    const outline = opt.outline !== false, shade = opt.shade !== false;
+    const w = src.width, h = src.height;
+    const sd = src.getContext('2d').getImageData(0, 0, w, h);
+    const s32 = new Uint32Array(sd.data.buffer);
+    const W2 = w * 2, H2 = h * 2;
+    const big = new Uint32Array(W2 * H2);
+    const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? 0 : s32[y * w + x];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const P = s32[y * w + x], A = at(x, y - 1), B = at(x + 1, y), C = at(x - 1, y), D = at(x, y + 1);
+        const o = (y * 2) * W2 + x * 2;
+        big[o] = (C === A && C !== D && A !== B) ? A : P;
+        big[o + 1] = (A === B && A !== C && B !== D) ? B : P;
+        big[o + W2] = (D === C && D !== B && C !== A) ? C : P;
+        big[o + W2 + 1] = (B === D && B !== A && D !== C) ? D : P;
+      }
+    }
+    const pad = outline ? 1 : 0, OW = W2 + pad * 2, OH = H2 + pad * 2;
+    const out = new ImageData(OW, OH);
+    const o32 = new Uint32Array(out.data.buffer);
+    const solid = v => (v >>> 24) > 160;
+    const bigAt = (x, y) => (x < 0 || y < 0 || x >= W2 || y >= H2) ? 0 : big[y * W2 + x];
+    const tint = (v, k, add) => {
+      const a = v >>> 24, b = (v >> 16) & 255, g = (v >> 8) & 255, r = v & 255;
+      const f = c => Math.max(0, Math.min(255, Math.round(c * k + add)));
+      return ((a << 24) | (f(b) << 16) | (f(g) << 8) | f(r)) >>> 0;
+    };
+    for (let y = 0; y < H2; y++) {
+      for (let x = 0; x < W2; x++) {
+        let v = big[y * W2 + x];
+        if (shade && solid(v)) {
+          const up = bigAt(x, y - 1), lf = bigAt(x - 1, y), dn = bigAt(x, y + 1), rt = bigAt(x + 1, y);
+          if (!solid(up) || !solid(lf)) v = tint(v, 1.08, 26);
+          else if (!solid(dn) || !solid(rt)) v = tint(v, 0.68, 0);
+          else if (up !== v && solid(up) && dn === v && (y & 1)) v = tint(v, 1.04, 8);
+        }
+        o32[(y + pad) * OW + x + pad] = v;
+      }
+    }
+    if (outline) {
+      const base = o32.slice();
+      for (let y = 0; y < OH; y++) {
+        for (let x = 0; x < OW; x++) {
+          if (solid(base[y * OW + x])) continue;
+          let dark = 0;
+          for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= OW || ny >= OH) continue;
+            const n = base[ny * OW + nx];
+            if (solid(n)) { dark = n; break; }
+          }
+          if (dark) o32[y * OW + x] = ((tint(dark, 0.22, 4) & 0x00ffffff) | 0xf0000000) >>> 0;
+        }
+      }
+    }
+    const { c, g } = Pix.canvas(OW, OH);
+    g.putImageData(out, 0, 0);
+    return c;
+  },
+
   ring(g, cx, cy, r0, r1, col) {
     g.fillStyle = col;
     const a = r0 * r0 + r0 * 0.8, b = r1 * r1 + r1 * 0.8, R = Math.ceil(r1);

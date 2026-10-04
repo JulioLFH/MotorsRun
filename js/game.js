@@ -1,7 +1,7 @@
 'use strict';
 // MotorsRun - carrera retro en tercera persona por la Costa Verde.
 (() => {
-  const VERSION = 'v1.2.0';
+  const VERSION = 'v1.3.0';
   const W = 384, H = 216;
   const cvs = document.getElementById('game');
   const wrap = document.getElementById('wrap');
@@ -31,7 +31,7 @@
 
   const cache = new Map();
   function art(b) {
-    if (!cache.has(b.id)) cache.set(b.id, { side: Sprites.sideBike(b), rear: Sprites3D.rearSet(b), rider: Sprites3D.flyingRider(b) });
+    if (!cache.has(b.id)) cache.set(b.id, { side: Pix.enhance(Sprites.sideBike(b)), rear: Sprites3D.rearSet(b), rider: Sprites3D.flyingRider(b) });
     return cache.get(b.id);
   }
   let ART = art(curBike());
@@ -76,7 +76,7 @@
       g.drawImage(SPR.fuelIcon, cx - 3, cy - 12);
     }
     Pix.px(g, cx - 12, cy - 13, 'rgba(255,255,255,0.4)'); Pix.px(g, cx - 13, cy - 11, 'rgba(255,255,255,0.4)'); Pix.px(g, cx - 10, cy - 14, 'rgba(255,255,255,0.4)');
-    return c;
+    return Pix.enhance(c, { outline: false, shade: false });
   }
   const FACE_SPEED = dialFace('speed'), FACE_FUEL = dialFace('fuel');
   function needle(cx, cy, len, frac, col) {
@@ -526,7 +526,8 @@
       ctx.save();
       ctx.translate(bx + (g.crash ? g.slide * Math.min(stateT, 1.5) * 20 : 0), by);
       ctx.rotate(g.lean);
-      ctx.drawImage(frame, -24, -60);
+      // sprite a doble resolución (con contorno de 1 px): se dibuja a la mitad de su tamaño
+      ctx.drawImage(frame, -frame.width / 4, -frame.height / 2 + 0.5, frame.width / 2, frame.height / 2);
       ctx.restore();
     }
 
@@ -570,7 +571,7 @@
 
     // velocímetro (marca la máxima de la moto)
     const kmh = Math.round(g.speed / U);
-    ctx.drawImage(FACE_SPEED, 3, H - 49);
+    ctx.drawImage(FACE_SPEED, 3, H - 49, 46, 46);
     const am = A0 + clamp(bk.max / DIAL_MAX, 0, 1) * SWEEP;
     Pix.line(ctx, 26 + Math.cos(am) * 16, H - 26 + Math.sin(am) * 16, 26 + Math.cos(am) * 19, H - 26 + Math.sin(am) * 19, '#7dff9a');
     needle(26, H - 26, 15, kmh / DIAL_MAX, '#ff4a3d');
@@ -578,7 +579,7 @@
     PixelFont.draw(ctx, String(kmh).padStart(3, '0'), 26, H - 16, g.turbo ? '#5ad1ff' : '#ffb347', 1, 'center');
 
     // gasolina y nitro
-    ctx.drawImage(FACE_FUEL, W - 49, H - 49);
+    ctx.drawImage(FACE_FUEL, W - 49, H - 49, 46, 46);
     needle(W - 26, H - 26, 15, g.fuel / 100, g.fuel < 22 && Math.sin(t * 12) > 0 ? '#ffffff' : '#ff4a3d');
     PixelFont.draw(ctx, 'NITRO +' + Math.round(bk.nitro * 100) + '%', W - 98, H - 13, '#5ad1ff', 1, 'left', '#0a0605');
     Pix.rect(ctx, W - 99, H - 7, 46, 5, '#0a0605');
@@ -809,6 +810,8 @@
   }
 
   function render() {
+    // el lienzo real es de 768x432: todo se dibuja en coordenadas lógicas de 384x216
+    ctx.setTransform(2, 0, 0, 2, 0, 0);
     ctx.imageSmoothingEnabled = false;
     if (state === 'menu') {
       const p = profile(), b = curBike();

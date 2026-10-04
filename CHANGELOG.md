@@ -1,5 +1,15 @@
 # Versiones de MotorsRun
 
+## v1.3.0: Pixel art en alta definición
+- El lienzo pasa de 384×216 a **768×432 píxeles reales**.
+- La pista se dibuja con el doble de líneas: bordes, curvas, orilla y brillos del sol en el mar más finos,
+  con olas rompiendo en la playa, línea blanca al borde de la pista y textura en la arena.
+- Todos los sprites (motos, piloto, carros, combis, ambulancia, palmeras, sombrillas, letreros, monedas y bidones)
+  pasan por un acabado de pixel art: escalado Scale2x que suaviza las curvas, luz en los bordes superiores,
+  sombra en los inferiores y contorno oscuro de 1 píxel.
+- Cielo con tramado ordenado (Bayer) más suave, sol y luna redondos, el doble de estrellas y nubes y cerros con relieve.
+- Garaje, tienda y tablero analógico más nítidos.
+
 ## v1.2.0: Concesionario y ambulancia
 - **Tienda de motos** con 16 modelos del mercado peruano (CFMOTO, Suzuki, KTM y Yamaha), en pixel art.
   - Se empieza con la **Yamaha YB125 Chacarera** y se compran las demás con las monedas acumuladas.

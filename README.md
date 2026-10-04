@@ -7,7 +7,7 @@ al rato cae la noche y se prenden los postes, las luces de la ciudad y los stops
 
 > *Disciplina hoy, libertad mañana. Sueña · Planifica · Trabaja · Logra. Ride safe.*
 
-**Versión actual: v1.2.0.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
+**Versión actual: v1.3.0.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
 
 ## Jugar online
 
@@ -111,7 +111,8 @@ MotorsRun/
     └── game.js        # bucle, física, tienda, choque final, tablero analógico, HUD y controles
 ```
 
-Todo el arte se genera por código sobre un lienzo de 384×216 escalado con `image-rendering: pixelated`.
+Todo el arte se genera por código. El juego trabaja en coordenadas de 384×216, pero dibuja sobre un lienzo real de
+768×432: la pista va en líneas de medio píxel y cada sprite pasa por `Pix.enhance` (Scale2x + luz, sombra y contorno).
 
 ## Versiones
 

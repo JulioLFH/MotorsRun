@@ -429,20 +429,27 @@ const Sprites3D = (() => {
 
   function rng(s) { return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
 
+  // Todo sprite del mundo pasa por Pix.enhance (doble resolución, luz, sombra y contorno)
+  const E = c => Pix.enhance(c);
+  const EO = o => Object.assign({}, o, { spr: E(o.spr) });
+
   function build() {
     return {
-      cars: [taxi(), taxi(), beetle('#7fb3c8', '#4f8398'), beetle('#f0e2c0', '#b8a888'), beetle('#e07b39', '#a04a1a'), combi(), pickup()],
-      palms: [palm(1), palm(2), palm(3)],
-      umbrellas: [umbrella('#d83a3a', '#f4ead0'), umbrella('#2aa8a8', '#f4ead0'), umbrella('#ffd23f', '#e07b39')],
-      lifeguard: lifeguard(), surf: surf(), stall: stall(), lamp: lamp(),
-      cliffs: [cliff(3), cliff(9), cliff(17)], rock: rock(), bush: bush(),
-      billboards: [['CHICHA MORADA', '¡BIEN HELADA!'], ['VISITE', 'MIRAFLORES'], ['RIDE SAFE', 'USA CASCO'], ['DISCIPLINA HOY', 'LIBERTAD MAÑANA'], ['SUEÑA·PLANIFICA', 'TRABAJA·LOGRA']].map(billboard),
-      signs: [['SAN MIGUEL'], ['MAGDALENA'], ['SAN ISIDRO'], ['MIRAFLORES'], ['BARRANCO'], ['CHORRILLOS'], ['LIMA, PERÚ >', 'COSTA VERDE']].map(l => Sprites.sign(l, 22)),
-      coin: [0, 1, 2, 3].map(coin), fuel: fuel(), nitro: nitro(),
+      cars: [taxi(), taxi(), beetle('#7fb3c8', '#4f8398'), beetle('#f0e2c0', '#b8a888'), beetle('#e07b39', '#a04a1a'), combi(), pickup()].map(EO),
+      palms: [palm(1), palm(2), palm(3)].map(E),
+      umbrellas: [umbrella('#d83a3a', '#f4ead0'), umbrella('#2aa8a8', '#f4ead0'), umbrella('#ffd23f', '#e07b39')].map(E),
+      lifeguard: E(lifeguard()), surf: E(surf()), stall: E(stall()), lamp: E(lamp()),
+      cliffs: [cliff(3), cliff(9), cliff(17)].map(c => Pix.enhance(c, { outline: false })), rock: E(rock()), bush: E(bush()),
+      billboards: [['CHICHA MORADA', '¡BIEN HELADA!'], ['VISITE', 'MIRAFLORES'], ['RIDE SAFE', 'USA CASCO'], ['DISCIPLINA HOY', 'LIBERTAD MAÑANA'], ['SUEÑA·PLANIFICA', 'TRABAJA·LOGRA']].map(l => E(billboard(l))),
+      signs: [['SAN MIGUEL'], ['MAGDALENA'], ['SAN ISIDRO'], ['MIRAFLORES'], ['BARRANCO'], ['CHORRILLOS'], ['LIMA, PERÚ >', 'COSTA VERDE']].map(l => E(Sprites.sign(l, 22))),
+      coin: [0, 1, 2, 3].map(f => E(coin(f))), fuel: E(fuel()), nitro: E(nitro()),
       glowWarm: glow(255, 200, 120, 1), glowRed: glow(255, 40, 40, 1), glowWhite: glow(255, 240, 200, 1),
-      glowBlue: glow(60, 120, 255, 1), ambulance: ambulance(),
+      glowBlue: glow(60, 120, 255, 1), ambulance: EO(ambulance()),
     };
   }
 
-  return { build, bike, rearSet, flyingRider };
+  const rearSetHD = b => { const s = rearSet(b); return { ride: s.ride.map(E), empty: E(s.empty) }; };
+  const flyingRiderHD = b => { const r = flyingRider(b); return { frames: r.frames.map(E), lying: E(r.lying) }; };
+
+  return { build, bike, rearSet: rearSetHD, flyingRider: flyingRiderHD };
 })();

@@ -6,7 +6,7 @@ const Road = (() => {
   const CAM_DEPTH = 1 / Math.tan(50 * Math.PI / 180), DRAW = 150, FOG = 8;
   const PLAYER_Z = CAM_H * CAM_DEPTH;
   let segments = [], trackLength = 0, SP = null;
-  let skyDay, skyNight, sunC, cloudsC, farDay, farNight, nearDay, nearNight;
+  let skyDay, skyNight, sunC, moonC, cloudsC, farDay, farNight, nearDay, nearNight;
   let stars = [], sunX = 110;
 
   const mod = (a, n) => ((a % n) + n) % n;
@@ -103,16 +103,20 @@ const Road = (() => {
   }
 
   // ---------- Fondo ----------
+  // Cielo en degradado con tramado (dithering) a resolución real doble
   function bands(cols, h) {
-    const { c, g } = Pix.canvas(W, h);
-    const bh = h / (cols.length - 1);
-    for (let y = 0; y < h; y++) {
+    const { c, g } = Pix.canvas(W * 2, h * 2);
+    const bh = h * 2 / (cols.length - 1);
+    const bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+    for (let y = 0; y < h * 2; y++) {
       const f = y / bh, i = Math.min(cols.length - 1, Math.floor(f)), n = Math.min(cols.length - 1, i + 1), fr = f - i;
-      Pix.rect(g, 0, y, W, 1, cols[i]);
-      if (fr > 0.5) { g.fillStyle = cols[n]; for (let x = (y % 2); x < W; x += fr > 0.78 ? 1 : 2) g.fillRect(x, y, 1, 1); }
+      Pix.rect(g, 0, y, W * 2, 1, cols[i]);
+      g.fillStyle = cols[n];
+      for (let x = 0; x < W * 2; x++) if (bayer[y & 3][x & 3] / 16 < fr) g.fillRect(x, y, 1, 1);
     }
     return c;
   }
+  const HD = (c, shade = true) => Pix.enhance(c, { outline: false, shade });
 
   function hills(base, top, lights, amp, seed, h, gap) {
     const { c, g } = Pix.canvas(T, h);
@@ -134,7 +138,7 @@ const Road = (() => {
     skyDay = bands(['#1e1838', '#33204c', '#5a2a5e', '#8e3462', '#c8485e', '#ea6a52', '#f69a52', '#fcc566', '#ffe2a0'], 140);
     skyNight = bands(['#04050e', '#070a1c', '#0b1028', '#101736', '#151d42', '#1b234c', '#222a58', '#2c3264', '#3a3a70'], 140);
     const R = rng(77);
-    stars = Array.from({ length: 70 }, () => ({ x: R() * W | 0, y: R() * 80 | 0, ph: R() * 6.28, sp: 1 + R() * 3 }));
+    stars = Array.from({ length: 140 }, () => ({ x: (R() * W * 2 | 0) / 2, y: (R() * 160 | 0) / 2, ph: R() * 6.28, sp: 1 + R() * 3 }));
 
     // sol retro con franjas
     {
@@ -147,7 +151,17 @@ const Road = (() => {
         const hw = Math.round(Math.sqrt(26 * 26 - dy * dy));
         Pix.rect(g, 30 - hw, y, hw * 2, 1, cols[Math.min(5, Math.floor((y - 4) / 9))]);
       }
-      sunC = c;
+      sunC = HD(c, false);
+    }
+    // luna creciente con cráteres
+    {
+      const { c, g } = Pix.canvas(18, 18);
+      Pix.disc(g, 9, 9, 7, '#f2ecd2');
+      for (const [x, y] of [[6, 7], [7, 11], [10, 13], [5, 10]]) Pix.px(g, x, y, '#d6cfae');
+      Pix.disc(g, 12, 7, 6, 'rgba(0,0,0,0)');
+      g.globalCompositeOperation = 'destination-out';
+      Pix.disc(g, 12, 7, 6, '#000');
+      moonC = HD(c);
     }
     // nubes
     {
@@ -162,24 +176,25 @@ const Road = (() => {
           Pix.rect(g, x + ox + 3, y + 3, w - 6, 1, '#b0607a');
         }
       }
-      cloudsC = c;
+      cloudsC = HD(c);
     }
-    farDay = hills('#7a4a78', '#9a5a86', false, 20, 1.3, 30, false);
-    farNight = hills('#161a38', '#222850', true, 20, 1.3, 30, false);
-    nearDay = hills('#4a2a52', '#6a3a62', false, 34, 4.1, 40, true);
-    nearNight = hills('#0c0f22', '#181c3a', true, 34, 4.1, 40, true);
+    farDay = HD(hills('#7a4a78', '#9a5a86', false, 20, 1.3, 30, false));
+    farNight = HD(hills('#161a38', '#222850', true, 20, 1.3, 30, false), false);
+    nearDay = HD(hills('#4a2a52', '#6a3a62', false, 34, 4.1, 40, true));
+    nearNight = HD(hills('#0c0f22', '#181c3a', true, 34, 4.1, 40, true), false);
   }
 
+  // Las capas están a doble resolución: se dibujan a tamaño lógico con desplazamiento de medio píxel
   function tile(ctx, img, off, y) {
-    const o = mod(Math.floor(off), T);
-    ctx.drawImage(img, -o, y);
-    if (T - o < W) ctx.drawImage(img, T - o, y);
+    const o = mod(Math.floor(off * 2) / 2, T), h = img.height / 2;
+    ctx.drawImage(img, -o, y, T, h);
+    if (T - o < W) ctx.drawImage(img, T - o, y, T, h);
   }
 
   function drawBackdrop(ctx, skyOff, hillOff, t, m, hz = HORIZON) {
     palette(m);
-    ctx.drawImage(skyDay, 0, hz - 139);
-    if (m > 0) { ctx.globalAlpha = m; ctx.drawImage(skyNight, 0, hz - 139); ctx.globalAlpha = 1; }
+    ctx.drawImage(skyDay, 0, hz - 139, W, 140);
+    if (m > 0) { ctx.globalAlpha = m; ctx.drawImage(skyNight, 0, hz - 139, W, 140); ctx.globalAlpha = 1; }
     if (m > 0.2) {
       for (const s of stars) {
         if (s.y > hz - 6) continue;
@@ -187,7 +202,8 @@ const Road = (() => {
         if (b < -0.2) continue;
         ctx.globalAlpha = (m - 0.2) * 1.25;
         ctx.fillStyle = b > 0.6 ? '#ffffff' : '#8a90c8';
-        ctx.fillRect(s.x, s.y, 1, 1);
+        ctx.fillRect(s.x, s.y, 0.5, 0.5);
+        if (b > 0.9 && s.sp > 3) { ctx.fillRect(s.x - 0.5, s.y, 1.5, 0.5); ctx.fillRect(s.x, s.y - 0.5, 0.5, 1.5); }
       }
       ctx.globalAlpha = 1;
     }
@@ -205,15 +221,14 @@ const Road = (() => {
       ctx.drawImage(SP.glowWarm, sx - 64, sy - 64, 128, 128);
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
-      ctx.drawImage(sunC, Math.round(sx - 30), sy - 30);
+      ctx.drawImage(sunC, Math.round(sx * 2) / 2 - 30, sy - 30, 60, 60);
       ctx.restore();
     }
     if (m > 0.3) {
       let mx = mod(300 - skyOff, T);
       if (mx > W + 20) mx -= T;
       ctx.globalAlpha = Math.min(1, (m - 0.3) * 2);
-      Pix.disc(ctx, Math.round(mx), hz - 64, 7, '#f2ecd2');
-      Pix.disc(ctx, Math.round(mx) + 3, hz - 66, 6, '#0b1028');
+      ctx.drawImage(moonC, Math.round(mx * 2) / 2 - 9, hz - 73, 18, 18);
       ctx.globalAlpha = 1;
     }
 
@@ -229,10 +244,10 @@ const Road = (() => {
     Pix.rect(ctx, 0, hz + 1, W, H - hz, far.sea1);
     if (m < 0.95) {
       ctx.fillStyle = far.glint;
-      for (let y = hz + 1; y < hz + 5; y++) {
+      for (let y = hz + 1; y < hz + 5; y += 0.5) {
         const gw = 6 + (y - hz) * 3;
-        const j = Math.round(Math.sin(t * 4 + y * 2.3) * 3);
-        ctx.fillRect(Math.round(sunX - gw / 2 + j), y, Math.round(gw * 0.6), 1);
+        const j = Math.round(Math.sin(t * 4 + y * 4.6) * 6) / 2;
+        if (Math.sin(t * 7 + y * 9) > -0.4) ctx.fillRect(Math.round((sunX - gw / 2 + j) * 2) / 2, y, Math.round(gw * 1.2) / 2, 0.5);
       }
     }
   }
@@ -255,15 +270,17 @@ const Road = (() => {
     p.camera.y = p.world.y - camY;
     p.camera.z = p.world.z - camZ;
     p.screen.scale = CAM_DEPTH / p.camera.z;
-    p.screen.x = Math.round(W / 2 + p.screen.scale * p.camera.x * W / 2);
-    p.screen.y = Math.round(HORIZON - p.screen.scale * p.camera.y * YS);
-    p.screen.w = Math.round(p.screen.scale * ROAD_W * W / 2);
+    p.screen.x = half(W / 2 + p.screen.scale * p.camera.x * W / 2);
+    p.screen.y = half(HORIZON - p.screen.scale * p.camera.y * YS);
+    p.screen.w = half(p.screen.scale * ROAD_W * W / 2);
   }
 
+  // El lienzo real tiene el doble de resolución: todo se redondea a medio píxel lógico
+  const half = v => Math.round(v * 2) / 2;
   function fill(ctx, x, y, w, col) {
     if (w <= 0) return;
     ctx.fillStyle = col;
-    ctx.fillRect(x, y, w, 1);
+    ctx.fillRect(x, y, w, 0.5);
   }
 
   function drawSegment(ctx, seg, clipY, m) {
@@ -276,33 +293,43 @@ const Road = (() => {
     const road = alt ? P.road1 : P.road2, rum = alt ? P.rum1 : P.rum2;
     const sand = alt ? P.sand1 : P.sand2, side = alt ? P.side1 : P.side2, walk = alt ? P.walk1 : P.walk2;
     const sea = sAlt ? P.sea1 : P.sea2;
-    const span = Math.max(1, p1.y - p2.y);
-    for (let y = top; y < bot; y++) {
-      const f = (y - p2.y + 0.5) / span;
+    const span = Math.max(0.5, p1.y - p2.y);
+    // líneas de medio píxel lógico = 1 píxel real
+    for (let y = top; y < bot; y += 0.5) {
+      const f = (y - p2.y + 0.25) / span;
       const x = p2.x + (p1.x - p2.x) * f, w = p2.w + (p1.w - p2.w) * f;
-      const rL = Math.round(x - w), rR = Math.round(x + w), rw = Math.max(1, Math.round(w * 0.1));
-      const foamX = Math.round(x - w * 2.7), sandX = Math.round(x - w * 2.55);
+      const rL = half(x - w), rR = half(x + w), rw = Math.max(0.5, half(w * 0.1));
+      const foamX = half(x - w * 2.7), sandX = half(x - w * 2.55);
+      const row = Math.round(y * 2);
       fill(ctx, 0, y, foamX, sea);
-      if (m < 0.95 && Math.abs(foamX) > 0 && ((seg.index * 7 + y) % 4 === 0)) {
-        const gw = 3 + (y - HORIZON) * 0.5;
-        const gx = Math.round(sunX + (seg.index * 13 % 9) - 4 - gw / 2);
-        if (gx + gw < foamX) fill(ctx, gx, y, Math.round(gw), P.glint);
+      // brillos del sol sobre el mar
+      if (m < 0.95 && foamX > 0 && ((seg.index * 7 + row) % 5 === 0)) {
+        const gw = 2 + (y - HORIZON) * 0.45;
+        const gx = half(sunX + (seg.index * 13 % 11) - 5 - gw / 2 + Math.sin(row * 0.7 + seg.index) * 2);
+        if (gx + gw < foamX) fill(ctx, gx, y, half(gw), P.glint);
       }
-      fill(ctx, foamX, y, sandX - foamX, sAlt ? P.foam : sand);
+      // ola que rompe en la orilla
+      const surf = sAlt ? half(w * 0.12) : half(w * 0.05);
+      fill(ctx, foamX - surf, y, surf, P.foam);
+      fill(ctx, foamX, y, sandX - foamX, (row + seg.index) % 3 ? P.foam : sand);
       fill(ctx, sandX, y, rL - rw - sandX, sand);
+      if (row % 7 === 0 && w > 20) fill(ctx, half(sandX + (seg.index * 17 % 13) / 13 * (rL - rw - sandX)), y, 0.5, alt ? P.sand2 : P.sand1);
       fill(ctx, rL - rw, y, rw, rum);
       if (seg.start) {
-        const cw = Math.max(1, Math.round(w / 6));
-        for (let k = 0; k < 12; k++) fill(ctx, rL + k * cw, y, cw, (k + (y >> 1)) % 2 ? '#f4f4f4' : '#141418');
+        const cw = Math.max(0.5, half(w / 6));
+        for (let k = 0; k < 12; k++) fill(ctx, rL + k * cw, y, cw, (k + (row >> 2)) % 2 ? '#f4f4f4' : '#141418');
       } else {
         fill(ctx, rL, y, rR - rL, road);
         if (alt) {
-          const lw = Math.max(1, Math.round(w * 0.03));
-          for (let i = 1; i < LANES; i++) fill(ctx, Math.round(x - w + 2 * w * i / LANES - lw / 2), y, lw, P.lane);
+          const lw = Math.max(0.5, half(w * 0.03));
+          for (let i = 1; i < LANES; i++) fill(ctx, half(x - w + 2 * w * i / LANES - lw / 2), y, lw, P.lane);
         }
+        // borde blanco de la pista
+        const ew = Math.max(0.5, half(w * 0.012));
+        fill(ctx, rL, y, ew, P.lane); fill(ctx, rR - ew, y, ew, P.lane);
       }
       fill(ctx, rR, y, rw, rum);
-      const sw = Math.round(x + w * 1.35);
+      const sw = half(x + w * 1.35);
       fill(ctx, rR + rw, y, sw - rR - rw, walk);
       fill(ctx, sw, y, W - sw, side);
     }
@@ -310,10 +337,10 @@ const Road = (() => {
 
   function drawObj(ctx, s, scale, sx, sy, clipY, m, fog) {
     const img = s.spr;
-    const dw = Math.round(s.w * scale * W / 2);
-    if (dw < 1 || dw > 1600) return;
-    const dh = Math.round(dw * img.height / img.width);
-    const dx = Math.round(sx + dw * (s.ax !== undefined ? s.ax : -0.5)), dy = Math.round(sy - dh);
+    const dw = half(s.w * scale * W / 2);
+    if (dw < 0.5 || dw > 1600) return;
+    const dh = half(dw * img.height / img.width);
+    const dx = half(sx + dw * (s.ax !== undefined ? s.ax : -0.5)), dy = half(sy - dh);
     const ch = Math.max(0, dy + dh - clipY);
     if (ch >= dh) return;
     ctx.globalAlpha = fog >= 5 ? 1 - (fog - 4) * 0.2 : 1;

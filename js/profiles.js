@@ -98,8 +98,13 @@ const Profiles = (() => {
       const del = el('button', 'pf-del', '✕');
       del.type = 'button';
       del.title = 'Borrar piloto';
+      // doble clic de confirmación dentro de la propia ventana
       del.addEventListener('click', () => {
-        if (confirm(`¿Borrar a ${p.name}? Se perderán sus S/ ${p.coins} y su récord.`)) { remove(p.id); render(); }
+        if (del.dataset.armed) { remove(p.id); render(); return; }
+        del.dataset.armed = '1';
+        del.textContent = '¿SÍ?';
+        del.title = `Toca otra vez para borrar a ${p.name} y sus S/ ${p.coins}`;
+        setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = '✕'; } }, 3000);
       });
       row.appendChild(pick); row.appendChild(del);
       list.appendChild(row);

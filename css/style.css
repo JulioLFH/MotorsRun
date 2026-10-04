@@ -142,7 +142,7 @@ body {
 .pf-coins { font-weight: bold; font-size: 17px; color: #b8860b; text-align: right; }
 .pf-stats { grid-column: 1 / -1; font-size: 12px; color: #7a5a3a; }
 .pf-del {
-  width: 36px;
+  min-width: 36px;
   border: 2px solid #c8b48a;
   background: #fff8e8;
   color: #c8323a;

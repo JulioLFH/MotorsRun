@@ -1,7 +1,7 @@
 'use strict';
 // MotorsRun - carrera retro en tercera persona por la Costa Verde.
 (() => {
-  const VERSION = 'v1.3.0';
+  const VERSION = 'v1.4.0';
   const W = 384, H = 216;
   const cvs = document.getElementById('game');
   const wrap = document.getElementById('wrap');
@@ -234,12 +234,12 @@
     const lane = Math.random() * 3 | 0;
     for (const c of G.cars) if (c.lane === lane && Math.abs(c.z - z) < SEG * 12) return;
     const tpl = SP.cars[Math.random() * SP.cars.length | 0];
-    G.cars.push({ spr: tpl.spr, w: tpl.w, lights: tpl.lights, z, x: LANES_X[lane], tx: LANES_X[lane], lane, speed: rand(35, 70) * U, passed: false, hit: false, prevRel: null });
+    G.cars.push({ spr: tpl.spr, w: tpl.w, lights: tpl.lights, side: tpl.side, shadow: 0.95, z, x: LANES_X[lane], tx: LANES_X[lane], lane, speed: rand(35, 70) * U, passed: false, hit: false, prevRel: null });
   }
 
   function addItem(kind, z, x) {
     const d = { coin: [SP.coin[0], 150, 70], fuel: [SP.fuel, 170, 0], nitro: [SP.nitro, 140, 0] }[kind];
-    G.items.push({ kind, spr: d[0], w: d[1], lift: d[2], z, x, ph: Math.random() * 4, got: false, prevRel: null });
+    G.items.push({ kind, spr: d[0], w: d[1], lift: d[2], shadow: 0.8, z, x, ph: Math.random() * 4, got: false, prevRel: null });
   }
 
   function spawnItems(z) {
@@ -457,7 +457,7 @@
     // llega la ambulancia con la sirena, lo sube y se va
     if (!c.amb && c.t > 1.5) {
       const A = SP.ambulance;
-      c.amb = { spr: A.spr, w: A.w, lights: A.lights, z: pz - PZ * 0.6, x: clamp(r.x + 0.4, -1, 1), speed: 8500, phase: 'come', loadT: 0, beacons: [] };
+      c.amb = { spr: A.spr, w: A.w, lights: A.lights, side: A.side, shadow: 0.95, z: pz - PZ * 0.6, x: clamp(r.x + 0.4, -1, 1), speed: 8500, phase: 'come', loadT: 0, beacons: [] };
       Sound.sirenOn();
       banner('¡AMBULANCIA!', 'TRANQUILO, YA TE RECOGEN');
     }

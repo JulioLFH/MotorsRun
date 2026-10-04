@@ -190,7 +190,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 32, 34, 9, 3, '#d01c1f'); Pix.rect(g, 35, 31, 3, 9, '#d01c1f');
     Pix.rect(g, 3, 33, 4, 6, '#c81a1f'); Pix.rect(g, 45, 33, 4, 6, '#c81a1f');
     Pix.rect(g, 1, 42, 50, 3, '#7d838f');
-    return { spr: c, w: 470, lights: [[5 / 52, 36 / 52], [47 / 52, 36 / 52]] };
+    return { spr: c, w: 470, lights: [[5 / 52, 36 / 52], [47 / 52, 36 / 52]], side: { body: '#d6d6dc', top: 0.1, glass: 0.2 } };
   }
 
   // ---------- Tráfico (vistos desde atrás) ----------
@@ -209,7 +209,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 12, 15, 24, 1, '#b8901f');
     Pix.rect(g, 19, 22, 10, 5, '#e8e4d0'); Pix.rect(g, 20, 24, 8, 1, '#4a4030');
     Pix.rect(g, 1, 26, 46, 3, '#c9ced8'); Pix.rect(g, 1, 28, 46, 1, '#7d838f');
-    return { spr: c, w: 420, lights: [[6.5 / 48, 17 / 34], [41.5 / 48, 17 / 34]] };
+    return { spr: c, w: 420, lights: [[6.5 / 48, 17 / 34], [41.5 / 48, 17 / 34]], side: { body: '#d8a820', top: 0.14, glass: 0.18 } };
   }
 
   function beetle(body, shade) {
@@ -225,7 +225,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 17, 22, 10, 4, '#e8e4d0');
     Pix.rect(g, 1, 25, 42, 2, '#c9ced8');
     Pix.px(g, 10, 4, 'rgba(255,255,255,0.6)'); Pix.px(g, 11, 4, 'rgba(255,255,255,0.6)');
-    return { spr: c, w: 380, lights: [[7.5 / 44, 19.5 / 32], [37.5 / 44, 19.5 / 32]] };
+    return { spr: c, w: 380, lights: [[7.5 / 44, 19.5 / 32], [37.5 / 44, 19.5 / 32]], side: { body: shade, top: 0.12, glass: 0.18 } };
   }
 
   function combi() {
@@ -241,7 +241,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 20, 33, 10, 5, '#e8e4d0');
     Pix.rect(g, 1, 39, 48, 3, '#7d838f');
     for (let y = 13; y < 38; y += 3) Pix.rect(g, 46, y, 2, 1, '#9ea4b0');
-    return { spr: c, w: 460, lights: [[5 / 50, 35 / 48], [45 / 50, 35 / 48]] };
+    return { spr: c, w: 460, lights: [[5 / 50, 35 / 48], [45 / 50, 35 / 48]], side: { body: '#d0ccc0', top: 0.06, glass: 0.24 } };
   }
 
   function pickup() {
@@ -256,7 +256,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 3, 15, 4, 6, '#ff3030'); Pix.rect(g, 41, 15, 4, 6, '#ff3030');
     Pix.rect(g, 19, 21, 10, 5, '#e8e4d0');
     Pix.rect(g, 1, 26, 46, 3, '#c9ced8');
-    return { spr: c, w: 430, lights: [[5 / 48, 18 / 34], [43 / 48, 18 / 34]] };
+    return { spr: c, w: 430, lights: [[5 / 48, 18 / 34], [43 / 48, 18 / 34]], side: { body: '#8e1014', top: 0.12, glass: 0.16 } };
   }
 
   // ---------- Playa y costa ----------

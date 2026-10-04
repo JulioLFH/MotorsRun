@@ -1,5 +1,13 @@
 # Versiones de MotorsRun
 
+## v1.4.0: Efecto 3D
+- El acantilado de la Costa Verde ahora es una **pared continua en 3D** proyectada en perspectiva junto a la pista,
+  con altura variable, vetas de roca, franjas de vegetación y sombra al pie.
+- **Guardavías en 3D** del lado del mar (doble riel y postes) y **sardinel** del lado del cerro.
+- **Carros con volumen:** según su posición se ve su costado (carrocería, ventanas y llanta), no solo la parte trasera.
+- **Sombras en el piso** bajo carros, combis, ambulancia, palmeras, sombrillas, letreros, bidones y monedas
+  (las monedas proyectan su sombra en la pista mientras flotan).
+
 ## v1.3.0: Pixel art en alta definición
 - El lienzo pasa de 384×216 a **768×432 píxeles reales**.
 - La pista se dibuja con el doble de líneas: bordes, curvas, orilla y brillos del sol en el mar más finos,

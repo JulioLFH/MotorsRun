@@ -17,11 +17,15 @@ const Road = (() => {
     road1: '#5c5060', road2: '#554a5a', rum1: '#c8323a', rum2: '#f0e6d2', lane: '#f0e6d2',
     sand1: '#e8b878', sand2: '#ddab6a', foam: '#fff0d8', sea1: '#3d5490', sea2: '#354a84',
     walk1: '#a89a8a', walk2: '#9c8e7e', side1: '#6a7a3a', side2: '#62723a', glint: '#ffd690', fog: '#e8987a',
+    cliff1: '#b08a5c', cliff2: '#a17d52', cliffD: '#7a5c3c', cliffL: '#d0a874', veg1: '#5a8a3a', veg2: '#4a7a30',
+    rail: '#dfe3ea', railD: '#8e93a0', post: '#5b5f6a', curb: '#c8c0b0', curbD: '#8a8070',
   };
   const NIGHT = {
     road1: '#26242f', road2: '#22202b', rum1: '#7a1a22', rum2: '#8a8698', lane: '#a6a2b4',
     sand1: '#5a4a4a', sand2: '#544444', foam: '#8a96c0', sea1: '#111b3c', sea2: '#0e1735',
     walk1: '#3a3844', walk2: '#363440', side1: '#1f2a22', side2: '#1c2620', glint: '#c8d4ff', fog: '#1c2040',
+    cliff1: '#3a3038', cliff2: '#342a32', cliffD: '#241c24', cliffL: '#4a3e46', veg1: '#1e3424', veg2: '#182c1e',
+    rail: '#8a8ea0', railD: '#4a4e5c', post: '#2c2e38', curb: '#4a4854', curbD: '#2c2a34',
   };
   const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   const mix = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
@@ -81,15 +85,25 @@ const Road = (() => {
     trackLength = segments.length * SEG;
   }
 
+  // Altura del acantilado en cada borde de segmento (pared 3D continua)
+  function buildWalls() {
+    const R = rng(77), n = segments.length;
+    const hgt = i => 2300 + 900 * Math.sin(i * 0.045) + 500 * Math.sin(i * 0.21 + 1) + 220 * Math.sin(i * 0.93);
+    for (const s of segments) {
+      s.wh1 = hgt(s.index);
+      s.wh2 = hgt((s.index + 1) % n === 0 ? 0 : s.index + 1);
+      s.veg = R() < 0.35 ? 0.3 + R() * 0.45 : 0;
+    }
+  }
+
   function decorate() {
     const R = rng(2024);
-    const add = (seg, spr, offset, w, extra = {}) => seg.sprites.push(Object.assign({ spr, offset, w, ax: -0.5, hit: 0 }, extra));
+    const add = (seg, spr, offset, w, extra = {}) => seg.sprites.push(Object.assign({ spr, offset, w, ax: -0.5, hit: 0, shadow: 0.7 }, extra));
     let signK = 0, boardK = 0;
     for (const s of segments) {
       const i = s.index;
       if (i >= 4 && i <= 5) s.start = true;
-      if (i % 3 === 0) add(s, SP.cliffs[(i / 3) % 3], 3.0 + R() * 0.3, 1500 + R() * 300);
-      if (i % 24 === 0) add(s, SP.lamp, 1.22, 500, { ax: -35 / 40, hit: 0.06, glow: [[9 / 40, 8 / 96, 0.7]], pool: 9 / 40 });
+      if (i % 24 === 0) add(s, SP.lamp, 1.22, 500, { ax: -35 / 40, hit: 0.06, glow: [[9 / 40, 8 / 96, 0.7]], pool: 9 / 40, shadow: 0 });
       if (i < 12) continue;
       if (i % 520 === 260) add(s, SP.signs[signK++ % SP.signs.length], 1.55, 800, { hit: 0.35 });
       else if (i % 300 === 150) add(s, SP.billboards[boardK++ % SP.billboards.length], 1.8, 950, { hit: 0.4 });
@@ -335,6 +349,61 @@ const Road = (() => {
     }
   }
 
+  // ---------- Volumen 3D: acantilado, guardavías y sardinel ----------
+  const WALL_OFF = 2.3, RAIL_OFF = -1.16, CURB_OFF = 1.36;
+  function quad(ctx, p, col) {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(p[0][0], p[0][1]);
+    for (let i = 1; i < p.length; i++) ctx.lineTo(p[i][0], p[i][1]);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // franja vertical entre dos alturas (en unidades del mundo) a lo largo de un segmento
+  function band(ctx, a, b, off, h0a, h1a, h0b, h1b, clip, col) {
+    const xa = a.x + a.scale * off * ROAD_W * W / 2, xb = b.x + b.scale * off * ROAD_W * W / 2;
+    const ya0 = Math.min(a.y - h0a * a.scale * YS, clip), ya1 = Math.min(a.y - h1a * a.scale * YS, clip);
+    const yb0 = Math.min(b.y - h0b * b.scale * YS, clip), yb1 = Math.min(b.y - h1b * b.scale * YS, clip);
+    if (ya1 >= clip && yb1 >= clip) return;
+    quad(ctx, [[xa, ya0], [xa, ya1], [xb, yb1], [xb, yb0]], col);
+  }
+
+  function drawWall(ctx, seg) {
+    const a = seg.p1.screen, b = seg.p2.screen, clip = seg.clip;
+    if (seg.p2.camera.z <= CAM_DEPTH) return;
+    const P = PAL[seg.fog], alt = seg.index % 2;
+    const h1 = seg.wh1, h2 = seg.wh2;
+    band(ctx, a, b, WALL_OFF, 0, h1, 0, h2, clip, alt ? P.cliff1 : P.cliff2);
+    // vetas de roca
+    for (const f of [0.22, 0.47, 0.71]) band(ctx, a, b, WALL_OFF, h1 * f, h1 * f + 55, h2 * f, h2 * f + 55, clip, P.cliffD);
+    band(ctx, a, b, WALL_OFF, h1 * 0.5, h1 * 0.5 + 30, h2 * 0.5, h2 * 0.5 + 30, clip, P.cliffL);
+    // vegetación de la Costa Verde
+    if (seg.veg) band(ctx, a, b, WALL_OFF, h1 * seg.veg, h1 * (seg.veg + 0.12), h2 * seg.veg, h2 * (seg.veg + 0.12), clip, P.veg2);
+    band(ctx, a, b, WALL_OFF, h1 * 0.86, h1, h2 * 0.86, h2, clip, P.veg1);
+    band(ctx, a, b, WALL_OFF, h1 * 0.97, h1 + 20, h2 * 0.97, h2 + 20, clip, P.veg2);
+    // pie del acantilado (sombra)
+    band(ctx, a, b, WALL_OFF, 0, 90, 0, 90, clip, P.cliffD);
+  }
+
+  function drawRails(ctx, seg) {
+    const a = seg.p1.screen, b = seg.p2.screen, clip = seg.clip;
+    if (seg.p2.camera.z <= CAM_DEPTH) return;
+    const P = PAL[seg.fog];
+    // guardavía del lado del mar: postes y doble riel
+    if (seg.index % 2 === 0) {
+      const pw = Math.max(0.5, half(a.scale * 22 * W / 2));
+      const px = a.x + a.scale * RAIL_OFF * ROAD_W * W / 2;
+      const top = a.y - 140 * a.scale * YS;
+      if (top < clip) { ctx.fillStyle = P.post; ctx.fillRect(px - pw / 2, top, pw, Math.min(a.y, clip) - top); }
+    }
+    band(ctx, a, b, RAIL_OFF, 95, 135, 95, 135, clip, P.rail);
+    band(ctx, a, b, RAIL_OFF, 95, 108, 95, 108, clip, P.railD);
+    // sardinel del lado del cerro
+    band(ctx, a, b, CURB_OFF, 0, 50, 0, 50, clip, seg.index % 2 ? P.curb : P.curbD);
+    band(ctx, a, b, CURB_OFF, 42, 50, 42, 50, clip, P.rail);
+  }
+
   function drawObj(ctx, s, scale, sx, sy, clipY, m, fog) {
     const img = s.spr;
     const dw = half(s.w * scale * W / 2);
@@ -344,6 +413,30 @@ const Road = (() => {
     const ch = Math.max(0, dy + dh - clipY);
     if (ch >= dh) return;
     ctx.globalAlpha = fog >= 5 ? 1 - (fog - 4) * 0.2 : 1;
+    // sombra en el piso
+    if (s.shadow && sy <= clipY && !s.lift) {
+      const sw = dw * s.shadow, shh = Math.max(0.5, half(dw * 0.09));
+      ctx.fillStyle = 'rgba(20,8,20,0.32)';
+      ctx.fillRect(half(sx - sw / 2), half(sy - shh / 2), half(sw), shh);
+      ctx.fillRect(half(sx - sw * 0.38), half(sy - shh), half(sw * 0.76), half(shh * 2));
+    } else if (s.lift && sy <= clipY) {
+      const base = sy + s.lift * scale * YS, sw = dw * 0.5;
+      if (base <= clipY) { ctx.fillStyle = 'rgba(20,8,20,0.25)'; ctx.fillRect(half(sx - sw / 2), half(base - 0.5), half(sw), 1); }
+    }
+    // costado del vehículo: se ve el lado que mira hacia el centro de la pantalla
+    if (s.side && ch === 0) {
+      const k = (sx - W / 2) / (W / 2);
+      const sw = Math.min(0.5, Math.abs(k) * 0.55) * dw;
+      if (sw >= 1) {
+        const dir = k < 0 ? 1 : -1, ex = dir > 0 ? dx + dw : dx, fx = ex + dir * sw;
+        const top = dy + dh * s.side.top;
+        quad(ctx, [[ex, top], [fx, top + sw * 0.18], [fx, dy + dh * 0.9 - sw * 0.05], [ex, dy + dh * 0.94]], s.side.body);
+        quad(ctx, [[ex, top + dh * 0.04], [fx - dir * sw * 0.08, top + dh * 0.04 + sw * 0.16], [fx - dir * sw * 0.08, top + dh * s.side.glass + sw * 0.1], [ex, top + dh * s.side.glass]], s.side.glassCol || '#2b3b5e');
+        const wy = dy + dh * 0.9, wr = Math.max(1, dh * 0.13);
+        ctx.fillStyle = '#0e0e12';
+        ctx.fillRect(half(ex + dir * sw * 0.55 - (dir > 0 ? 0 : wr)), half(wy - wr), half(wr), half(wr * 1.6));
+      }
+    }
     ctx.drawImage(img, 0, 0, img.width, img.height * (dh - ch) / dh, dx, dy, dw, dh - ch);
     ctx.globalAlpha = 1;
     if (s.beacons) {
@@ -414,7 +507,12 @@ const Road = (() => {
       const seg = segments[(base.index + n) % segments.length];
       if (!seg.vis) continue;
       const s1 = seg.p1.screen, s2 = seg.p2.screen;
-      for (const s of seg.sprites) drawObj(ctx, s, s1.scale, s1.x + s1.scale * s.offset * ROAD_W * W / 2, s1.y, seg.clip, v.night, seg.fog);
+      const put = s => drawObj(ctx, s, s1.scale, s1.x + s1.scale * s.offset * ROAD_W * W / 2, s1.y, seg.clip, v.night, seg.fog);
+      // de atrás hacia adelante: acantilado, objetos detrás de las barandas, barandas, objetos junto a la pista
+      drawWall(ctx, seg);
+      for (const s of seg.sprites) if (s.offset < RAIL_OFF || s.offset > CURB_OFF) put(s);
+      drawRails(ctx, seg);
+      for (const s of seg.sprites) if (s.offset >= RAIL_OFF && s.offset <= CURB_OFF) put(s);
       const objs = buckets[n];
       if (!objs) continue;
       objs.sort((a, b) => b._pct - a._pct);
@@ -432,6 +530,7 @@ const Road = (() => {
   function build(sprites) {
     SP = sprites;
     buildTrack();
+    buildWalls();
     decorate();
     buildBackdrop();
   }

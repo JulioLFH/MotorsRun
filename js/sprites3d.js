@@ -222,7 +222,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 32, 34, 9, 3, '#d01c1f'); Pix.rect(g, 35, 31, 3, 9, '#d01c1f');
     Pix.rect(g, 3, 33, 4, 6, '#c81a1f'); Pix.rect(g, 45, 33, 4, 6, '#c81a1f');
     Pix.rect(g, 1, 42, 50, 3, '#7d838f');
-    return { spr: c, w: 470, lights: [[5 / 52, 36 / 52], [47 / 52, 36 / 52]], side: { body: '#d6d6dc', top: 0.1, glass: 0.2 } };
+    return { spr: c, w: 470, lights: [[5 / 52, 36 / 52], [47 / 52, 36 / 52]], box: { len: 1100, body: 0.1, side: '#dcdce2', sideD: '#8a8a94', top: '#f4f4f4', glass: '#2b3b5e', windows: [0.2, 0.36], stripe: [0.42, 0.48, '#d01c1f'], wheels: [0.15, 0.82] } };
   }
 
   // ---------- Tráfico (vistos desde atrás) ----------
@@ -241,7 +241,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 12, 15, 24, 1, '#b8901f');
     Pix.rect(g, 19, 22, 10, 5, '#e8e4d0'); Pix.rect(g, 20, 24, 8, 1, '#4a4030');
     Pix.rect(g, 1, 26, 46, 3, '#c9ced8'); Pix.rect(g, 1, 28, 46, 1, '#7d838f');
-    return { spr: c, w: 420, lights: [[6.5 / 48, 17 / 34], [41.5 / 48, 17 / 34]], side: { body: '#d8a820', top: 0.14, glass: 0.18 } };
+    return { spr: c, w: 420, lights: [[6.5 / 48, 17 / 34], [41.5 / 48, 17 / 34]], box: { len: 900, body: 0.4, cab: [0.12, 0.58], cabTop: 0.1, inset: 0.17, side: '#d8a820', sideD: '#8a6a10', top: '#f2c230', roof: '#e8b820', glass: '#2b3b5e', wheels: [0.16, 0.82], stripe: [0.59, 0.64, '#16161c'] } };
   }
 
   function beetle(body, shade) {
@@ -257,7 +257,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 17, 22, 10, 4, '#e8e4d0');
     Pix.rect(g, 1, 25, 42, 2, '#c9ced8');
     Pix.px(g, 10, 4, 'rgba(255,255,255,0.6)'); Pix.px(g, 11, 4, 'rgba(255,255,255,0.6)');
-    return { spr: c, w: 380, lights: [[7.5 / 44, 19.5 / 32], [37.5 / 44, 19.5 / 32]], side: { body: shade, top: 0.12, glass: 0.18 } };
+    return { spr: c, w: 380, lights: [[7.5 / 44, 19.5 / 32], [37.5 / 44, 19.5 / 32]], box: { len: 720, body: 0.38, cab: [0.2, 0.62], cabTop: 0.06, inset: 0.22, side: shade, sideD: '#2a2a30', top: body, roof: body, glass: '#2b3b5e', wheels: [0.15, 0.8] } };
   }
 
   function combi() {
@@ -273,7 +273,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 20, 33, 10, 5, '#e8e4d0');
     Pix.rect(g, 1, 39, 48, 3, '#7d838f');
     for (let y = 13; y < 38; y += 3) Pix.rect(g, 46, y, 2, 1, '#9ea4b0');
-    return { spr: c, w: 460, lights: [[5 / 50, 35 / 48], [45 / 50, 35 / 48]], side: { body: '#d0ccc0', top: 0.06, glass: 0.24 } };
+    return { spr: c, w: 460, lights: [[5 / 50, 35 / 48], [45 / 50, 35 / 48]], box: { len: 1050, body: 0.04, side: '#d0ccc0', sideD: '#8a8678', top: '#e8e4d8', glass: '#2b3b5e', windows: [0.24, 0.48], stripe: [0.54, 0.64, '#1f5fd0'], wheels: [0.14, 0.84] } };
   }
 
   function pickup() {
@@ -288,7 +288,7 @@ const Sprites3D = (() => {
     Pix.rect(g, 3, 15, 4, 6, '#ff3030'); Pix.rect(g, 41, 15, 4, 6, '#ff3030');
     Pix.rect(g, 19, 21, 10, 5, '#e8e4d0');
     Pix.rect(g, 1, 26, 46, 3, '#c9ced8');
-    return { spr: c, w: 430, lights: [[5 / 48, 18 / 34], [43 / 48, 18 / 34]], side: { body: '#8e1014', top: 0.12, glass: 0.16 } };
+    return { spr: c, w: 430, lights: [[5 / 48, 18 / 34], [43 / 48, 18 / 34]], box: { len: 960, body: 0.4, cab: [0.55, 0.85], cabTop: 0.09, inset: 0.2, side: '#8e1014', sideD: '#4a080a', top: '#b3161b', roof: '#a8141a', glass: '#2b3b5e', wheels: [0.16, 0.8], cargo: '#a0703a' } };
   }
 
   // ---------- Playa y costa ----------

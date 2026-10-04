@@ -404,6 +404,68 @@ const Road = (() => {
     band(ctx, a, b, CURB_OFF, 42, 50, 42, 50, clip, P.rail);
   }
 
+  // Vehículo como caja 3D: la cara trasera es el sprite y la delantera se proyecta z+largo más adelante
+  // con la misma perspectiva de la pista. Se dibujan costado, capó/maletera, cabina y techo; luego el sprite.
+  function drawBox(ctx, o, sc, sx, sy, f, clipY) {
+    const B = o.box, asp = o.spr.height / o.spr.width;
+    const rw = o.w * sc * W / 2, rh = rw * asp, fw = o.w * f.sc * W / 2, fh = fw * asp;
+    if (rw < 2) return;
+    const R = { x0: sx - rw / 2, x1: sx + rw / 2, y: fr => sy - rh * (1 - fr), w: rw };
+    const F = { x0: f.x - fw / 2, x1: f.x + fw / 2, y: fr => f.y - fh * (1 - fr), w: fw };
+    // punto a lo largo del vehículo: u=0 trasera, u=1 delantera
+    const at = (u, side, fr, inset = 0) => {
+      const rx = side < 0 ? R.x0 + R.w * inset : R.x1 - R.w * inset;
+      const fx = side < 0 ? F.x0 + F.w * inset : F.x1 - F.w * inset;
+      return [rx + (fx - rx) * u, R.y(fr) + (F.y(fr) - R.y(fr)) * u];
+    };
+    const face = (u0, u1, side, f0, f1, inset, col) => quad(ctx, [at(u0, side, f0, inset), at(u0, side, f1, inset), at(u1, side, f1, inset), at(u1, side, f0, inset)], col);
+    const top = (u0, u1, fr, inset, col) => quad(ctx, [at(u0, -1, fr, inset), at(u0, 1, fr, inset), at(u1, 1, fr, inset), at(u1, -1, fr, inset)], col);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, W, clipY); ctx.clip();
+    // se ve el costado que mira hacia la cámara
+    const side = sx < W / 2 - 1 ? 1 : sx > W / 2 + 1 ? -1 : 0;
+    if (side) {
+      face(0, 1, side, 0.96, B.body, 0, B.side);
+      if (B.stripe) face(0, 1, side, B.stripe[0], B.stripe[1], 0, B.stripe[2]);
+      face(0, 1, side, 0.96, 0.9, 0, B.sideD);
+      if (B.windows) for (let u = 0.08; u < 0.86; u += 0.2) face(u, u + 0.15, side, B.windows[0], B.windows[1], 0, B.glass);
+      // llantas
+      for (const u of B.wheels) {
+        const [x, y] = at(u, side, 1), [, yt] = at(u, side, 0.78);
+        const ww = Math.max(1, (R.w + (F.w - R.w) * u) * 0.16);
+        ctx.fillStyle = '#0e0e12';
+        ctx.fillRect(x - ww / 2, yt, ww, y - yt);
+        ctx.fillStyle = '#7d838f';
+        ctx.fillRect(x - ww / 4, yt + (y - yt) * 0.3, ww / 2, (y - yt) * 0.35);
+      }
+    }
+    // capó y maletera
+    top(0, 1, B.body, 0, B.top);
+    if (B.cab) {
+      const [u0, u1] = B.cab;
+      if (side) {
+        face(u0, u1, side, B.body, B.cabTop, B.inset, B.glass);
+        face(u0 + (u1 - u0) * 0.48, u0 + (u1 - u0) * 0.52, side, B.body, B.cabTop, B.inset, B.roof);
+      }
+      top(u0, u1, B.cabTop, B.inset, B.roof);
+      if (B.cargo) top(0.02, u0 - 0.04, B.body - 0.12, 0.06, B.cargo);
+    }
+    ctx.restore();
+  }
+
+  // proyección de un punto (z absoluto) usando los segmentos ya proyectados en este cuadro
+  let PROJ = null;
+  function screenAt(z, xOff) {
+    if (!PROJ) return null;
+    const r = (z - PROJ.baseAbs) / SEG, n = Math.floor(r);
+    if (n < 0 || n >= DRAW) return null;
+    const seg = segments[(PROJ.base + n) % segments.length];
+    if (!seg.vis) return null;
+    const a = seg.p1.screen, b = seg.p2.screen, k = r - n;
+    const sc = a.scale + (b.scale - a.scale) * k;
+    return { sc, x: a.x + (b.x - a.x) * k + sc * xOff * ROAD_W * W / 2, y: a.y + (b.y - a.y) * k };
+  }
+
   function drawObj(ctx, s, scale, sx, sy, clipY, m, fog) {
     const img = s.spr;
     const dw = half(s.w * scale * W / 2);
@@ -422,20 +484,6 @@ const Road = (() => {
     } else if (s.lift && sy <= clipY) {
       const base = sy + s.lift * scale * YS, sw = dw * 0.5;
       if (base <= clipY) { ctx.fillStyle = 'rgba(20,8,20,0.25)'; ctx.fillRect(half(sx - sw / 2), half(base - 0.5), half(sw), 1); }
-    }
-    // costado del vehículo: se ve el lado que mira hacia el centro de la pantalla
-    if (s.side && ch === 0) {
-      const k = (sx - W / 2) / (W / 2);
-      const sw = Math.min(0.5, Math.abs(k) * 0.55) * dw;
-      if (sw >= 1) {
-        const dir = k < 0 ? 1 : -1, ex = dir > 0 ? dx + dw : dx, fx = ex + dir * sw;
-        const top = dy + dh * s.side.top;
-        quad(ctx, [[ex, top], [fx, top + sw * 0.18], [fx, dy + dh * 0.9 - sw * 0.05], [ex, dy + dh * 0.94]], s.side.body);
-        quad(ctx, [[ex, top + dh * 0.04], [fx - dir * sw * 0.08, top + dh * 0.04 + sw * 0.16], [fx - dir * sw * 0.08, top + dh * s.side.glass + sw * 0.1], [ex, top + dh * s.side.glass]], s.side.glassCol || '#2b3b5e');
-        const wy = dy + dh * 0.9, wr = Math.max(1, dh * 0.13);
-        ctx.fillStyle = '#0e0e12';
-        ctx.fillRect(half(ex + dir * sw * 0.55 - (dir > 0 ? 0 : wr)), half(wy - wr), half(wr), half(wr * 1.6));
-      }
     }
     ctx.drawImage(img, 0, 0, img.width, img.height * (dh - ch) / dh, dx, dy, dw, dh - ch);
     ctx.globalAlpha = 1;
@@ -503,6 +551,7 @@ const Road = (() => {
       maxy = seg.p2.screen.y;
     }
 
+    PROJ = { baseAbs, base: base.index };
     for (let n = DRAW - 1; n >= 0; n--) {
       const seg = segments[(base.index + n) % segments.length];
       if (!seg.vis) continue;
@@ -521,6 +570,14 @@ const Road = (() => {
         const sc = s1.scale + (s2.scale - s1.scale) * k;
         const sx = s1.x + (s2.x - s1.x) * k + sc * o.x * ROAD_W * W / 2;
         const sy = s1.y + (s2.y - s1.y) * k - (o.lift || 0) * sc * YS;
+        if (o.box) {
+          const f = screenAt(o.z + o.box.len, o.x);
+          if (f && f.y < sy) {
+            ctx.globalAlpha = seg.fog >= 5 ? 1 - (seg.fog - 4) * 0.2 : 1;
+            drawBox(ctx, o, sc, sx, sy, f, seg.clip);
+            ctx.globalAlpha = 1;
+          }
+        }
         drawObj(ctx, o, sc, sx, sy, seg.clip, v.night, seg.fog);
       }
     }

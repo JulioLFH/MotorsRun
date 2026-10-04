@@ -1,7 +1,7 @@
 'use strict';
 // MotorsRun - carrera retro en tercera persona por la Costa Verde.
 (() => {
-  const VERSION = 'v1.5.0';
+  const VERSION = 'v1.5.1';
   const W = 384, H = 216;
   const cvs = document.getElementById('game');
   const wrap = document.getElementById('wrap');
@@ -234,7 +234,7 @@
     const lane = Math.random() * 3 | 0;
     for (const c of G.cars) if (c.lane === lane && Math.abs(c.z - z) < SEG * 12) return;
     const tpl = SP.cars[Math.random() * SP.cars.length | 0];
-    G.cars.push({ spr: tpl.spr, w: tpl.w, lights: tpl.lights, side: tpl.side, shadow: 0.95, z, x: LANES_X[lane], tx: LANES_X[lane], lane, speed: rand(35, 70) * U, passed: false, hit: false, prevRel: null });
+    G.cars.push({ spr: tpl.spr, w: tpl.w, lights: tpl.lights, box: tpl.box, shadow: 0.95, z, x: LANES_X[lane], tx: LANES_X[lane], lane, speed: rand(35, 70) * U, passed: false, hit: false, prevRel: null });
   }
 
   function addItem(kind, z, x) {
@@ -519,7 +519,7 @@
       const A = SP.ambulance;
       // se estaciona al costado del piloto para que los enfermeros caminen junto a ella
       const ax = clamp(r.x + (r.x > 0 ? -0.55 : 0.55), -1, 1);
-      c.amb = { spr: A.spr, w: A.w, lights: A.lights, side: A.side, shadow: 0.95, z: pz - PZ * 0.6, x: ax, tx: ax, speed: 8500, phase: 'come', t: 0, beacons: [] };
+      c.amb = { spr: A.spr, w: A.w, lights: A.lights, box: A.box, shadow: 0.95, z: pz - PZ * 0.6, x: ax, tx: ax, speed: 8500, phase: 'come', t: 0, beacons: [] };
       Sound.sirenOn();
       banner('¡AMBULANCIA!', 'TRANQUILO, YA TE RECOGEN');
     }
@@ -1101,6 +1101,7 @@
     VERSION,
     get state() { return state; }, get G() { return G; }, startGame, openShop, input, keys, syncInput,
     forceEnding(k) { forcedEnding = k || null; },
+    get SP() { return SP; },
     tick(sec) { for (let i = 0; i < sec * 60; i++) { t += 1 / 60; stateT += 1 / 60; update(1 / 60); } render(); },
   };
 })();

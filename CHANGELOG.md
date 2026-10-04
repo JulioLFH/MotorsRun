@@ -1,5 +1,12 @@
 # Versiones de MotorsRun
 
+## v1.5.1: Carros en 3D real
+- Los vehículos ya no usan un panel lateral aproximado (se veía descuadrado). Ahora cada uno es una **caja 3D**:
+  la parte trasera es el sprite y la delantera se proyecta con la misma perspectiva de la pista.
+- Se ven costado, capó, maletera, cabina con ventanas, techo y llantas, alineados con la carretera y sus curvas.
+- Cada vehículo tiene su forma: taxi con franja a cuadros, escarabajo de cabina corta, combi con ventanas y franja azul,
+  camioneta con tolva y carga, y ambulancia con franja roja.
+
 ## v1.5.0: Tres finales de choque
 Al perder el tercer casco sale al azar uno de tres finales (nunca el mismo dos veces seguidas):
 - **¡Saliste volando!** Cámara lenta, el piloto sale disparado alto y lejos dando vueltas y cae a lo lejos.

@@ -60,7 +60,7 @@ const Pix = {
 
 const Sprites = (() => {
   // Moto naked tipo "NK 250" de 50x42. Rueda trasera (11,34), delantera (38,34).
-  function moto(col, rider, frame) {
+  function moto(col, rider, frame, letters = true) {
     const { c, g } = Pix.canvas(50, 42);
     const M = col.main, L = col.light, D = col.dark;
 
@@ -117,7 +117,7 @@ const Sprites = (() => {
     Pix.line(g, 29, 25, 34, 26, D);
     Pix.line(g, 31, 21, 36, 20, '#16161c');
     // letras NK
-    for (const [x, y] of [[25, 17], [25, 18], [25, 19], [26, 17], [27, 18], [28, 17], [28, 18], [28, 19],
+    if (letters) for (const [x, y] of [[25, 17], [25, 18], [25, 19], [26, 17], [27, 18], [28, 17], [28, 18], [28, 19],
                           [30, 17], [30, 18], [30, 19], [31, 18], [32, 17], [32, 19]]) Pix.px(g, x, y, '#f4f4f4');
     // faro
     Pix.poly(g, [[34, 12], [38, 13], [41, 16], [40, 19], [35, 18]], '#16161c');
@@ -158,6 +158,118 @@ const Sprites = (() => {
 
   function motoSet(col) {
     return { ride: [0, 1, 2, 3].map(f => moto(col, true, f)), park: moto(col, false, 0) };
+  }
+
+  // ---------- Motos del catálogo vistas de perfil (garaje y tienda) ----------
+  function spokeWheel(g, cx, cy, rim, front) {
+    Pix.disc(g, cx, cy, 7, '#0e0e12');
+    Pix.ring(g, cx, cy, 6, 7, '#1d1d25');
+    Pix.px(g, cx - 4, cy - 5, '#3c3c48'); Pix.px(g, cx - 5, cy - 4, '#3c3c48');
+    Pix.disc(g, cx, cy, 5, '#17171e');
+    Pix.ring(g, cx, cy, 4, 5, rim);
+    for (let k = 0; k < 8; k++) {
+      const a = k * Math.PI / 4;
+      Pix.line(g, cx, cy, cx + Math.cos(a) * 4, cy + Math.sin(a) * 4, '#7d838f');
+    }
+    if (front) Pix.ring(g, cx, cy, 1, 2, '#9ea4b0');
+    Pix.disc(g, cx, cy, 1, '#c9ced8');
+  }
+
+  function classicBike(c) {
+    const { c: cv, g } = Pix.canvas(50, 42);
+    const M = c.main, L = c.light, D = c.dark, CH = '#c9ced8';
+    spokeWheel(g, 11, 34, CH, false); spokeWheel(g, 38, 34, CH, true);
+    Pix.line(g, 20, 32, 16, 41, '#3a3b45');
+    Pix.line(g, 11, 34, 21, 30, '#2c2d36', 2);
+    Pix.rect(g, 4, 25, 12, 1, CH); Pix.px(g, 3, 26, CH);
+    Pix.rect(g, 33, 26, 10, 1, CH); Pix.px(g, 43, 27, CH);
+    Pix.rect(g, 19, 24, 10, 8, '#8a8f9c');
+    for (const y of [25, 27, 29]) Pix.line(g, 20, y, 28, y, '#5a5d6a');
+    Pix.disc(g, 22, 29, 2, '#b0b4bc');
+    Pix.line(g, 24, 32, 6, 31, CH, 2); Pix.rect(g, 3, 30, 4, 3, '#9ea4b0'); Pix.line(g, 7, 30, 18, 31, '#ffffff');
+    Pix.line(g, 18, 22, 31, 22, '#1e1e26');
+    Pix.line(g, 35, 15, 38, 34, CH, 2); Pix.line(g, 36, 22, 37, 27, '#3a3b45', 2);
+    Pix.rect(g, 14, 22, 6, 5, D);
+    Pix.rect(g, 7, 18, 15, 3, '#2a1a12'); Pix.rect(g, 7, 18, 15, 1, '#4a3020');
+    Pix.rect(g, 3, 19, 5, 1, CH); Pix.disc(g, 3, 21, 1, '#ff3a3a');
+    Pix.poly(g, [[20, 20], [23, 16], [31, 16], [33, 19], [31, 22], [22, 22]], M);
+    Pix.line(g, 23, 17, 30, 17, L); Pix.px(g, 27, 19, CH); Pix.px(g, 28, 19, CH);
+    Pix.line(g, 22, 21, 31, 21, D);
+    Pix.line(g, 31, 11, 36, 12, CH);
+    Pix.line(g, 32, 11, 31, 6, '#5a5d6a'); Pix.disc(g, 31, 5, 1, CH);
+    Pix.disc(g, 38, 15, 3, CH); Pix.disc(g, 38, 15, 2, '#fff4b8'); Pix.px(g, 39, 14, '#ffffff');
+    return cv;
+  }
+
+  function sportBike(c) {
+    const { c: cv, g } = Pix.canvas(50, 42);
+    const M = c.main, L = c.light, D = c.dark, A = c.accent;
+    for (const [x, f] of [[11, false], [38, true]]) {
+      Pix.disc(g, x, 34, 7, '#0e0e12'); Pix.ring(g, x, 34, 6, 7, '#1d1d25');
+      Pix.disc(g, x, 34, 5, '#17171e'); Pix.ring(g, x, 34, 4, 5, A);
+      for (let k = 0; k < 3; k++) { const a = k * Math.PI * 2 / 3; Pix.line(g, x, 34, x + Math.cos(a) * 4, 34 + Math.sin(a) * 4, '#5d616c'); }
+      if (f) Pix.ring(g, x, 34, 2, 3, '#8a8f9c');
+      Pix.disc(g, x, 34, 1, '#b0b4bc');
+    }
+    Pix.line(g, 20, 32, 16, 41, '#3a3b45');
+    Pix.line(g, 11, 34, 21, 31, '#2c2d36', 2);
+    Pix.line(g, 36, 17, 38, 34, '#2a2a32', 2);
+    Pix.rect(g, 34, 26, 8, 1, M);
+    Pix.poly(g, [[2, 15], [14, 18], [20, 21], [18, 23], [8, 21]], M);
+    Pix.line(g, 3, 15, 13, 18, L); Pix.px(g, 1, 15, '#ff3a3a'); Pix.px(g, 2, 16, '#ff3a3a');
+    Pix.line(g, 6, 20, 12, 20, A);
+    Pix.poly(g, [[12, 18], [21, 19], [21, 21], [14, 21]], '#121216');
+    Pix.poly(g, [[20, 19], [23, 15], [30, 14], [33, 16], [27, 21]], M);
+    Pix.line(g, 23, 15, 30, 14, L);
+    Pix.poly(g, [[26, 14], [36, 11], [43, 15], [44, 21], [39, 27], [30, 31], [21, 31], [21, 25], [27, 20]], M);
+    Pix.line(g, 27, 15, 36, 12, L);
+    Pix.line(g, 25, 26, 42, 19, A); Pix.line(g, 26, 27, 41, 21, A);
+    Pix.line(g, 21, 30, 30, 30, D); Pix.line(g, 30, 30, 39, 26, D);
+    Pix.rect(g, 28, 22, 4, 1, '#16161c'); Pix.rect(g, 28, 24, 4, 1, '#16161c');
+    Pix.rect(g, 18, 31, 9, 2, '#3a3d48'); Pix.rect(g, 16, 31, 2, 2, '#9ea4b0');
+    Pix.poly(g, [[34, 11], [38, 6], [41, 7], [37, 12]], '#4a6a98'); Pix.px(g, 38, 7, '#9cc0ff');
+    Pix.rect(g, 40, 15, 3, 1, '#fff4b8'); Pix.px(g, 42, 16, '#ffffff');
+    Pix.line(g, 31, 13, 34, 14, '#26262e'); Pix.rect(g, 35, 10, 3, 1, '#121216');
+    return cv;
+  }
+
+  function adventureBike(c) {
+    const { c: cv, g } = Pix.canvas(50, 42);
+    const M = c.main, L = c.light, D = c.dark, A = c.accent, GOLD = '#d4a02a';
+    spokeWheel(g, 11, 34, GOLD, false); spokeWheel(g, 38, 34, GOLD, true);
+    Pix.line(g, 20, 32, 16, 41, '#3a3b45');
+    Pix.line(g, 11, 34, 21, 30, '#2c2d36', 2);
+    Pix.line(g, 36, 15, 38, 34, GOLD, 2);
+    Pix.rect(g, 33, 26, 9, 1, '#16161c');
+    Pix.rect(g, 19, 23, 11, 6, '#2c2d36');
+    Pix.poly(g, [[19, 31], [30, 31], [32, 28], [19, 28]], '#9ea4b0');
+    Pix.line(g, 13, 24, 5, 21, '#9ea4b0', 2); Pix.rect(g, 3, 20, 3, 3, '#5a5f6a');
+    Pix.rect(g, 1, 11, 10, 8, '#9ea4b0'); Pix.rect(g, 1, 11, 10, 1, '#c9ced8'); Pix.rect(g, 1, 18, 10, 1, '#5a5f6a');
+    Pix.rect(g, 2, 14, 1, 2, '#ff3a3a');
+    Pix.poly(g, [[4, 18], [13, 18], [19, 20], [16, 22], [7, 21]], M);
+    Pix.rect(g, 10, 16, 12, 2, '#121216');
+    Pix.poly(g, [[19, 17], [23, 12], [33, 12], [36, 16], [34, 22], [22, 22]], M);
+    Pix.line(g, 23, 13, 32, 13, L);
+    Pix.line(g, 22, 19, 34, 15, A); Pix.line(g, 23, 20, 34, 17, A);
+    Pix.line(g, 22, 22, 34, 22, D);
+    Pix.poly(g, [[35, 9], [40, 10], [42, 15], [38, 18], [35, 16]], '#16161c');
+    Pix.poly(g, [[38, 16], [46, 19], [39, 21]], M);
+    Pix.rect(g, 39, 12, 2, 3, '#fff4b8'); Pix.px(g, 40, 13, '#ffffff');
+    Pix.poly(g, [[35, 9], [38, 2], [40, 3], [38, 10]], '#4a6a98'); Pix.px(g, 38, 4, '#9cc0ff');
+    Pix.line(g, 30, 9, 35, 10, '#26262e'); Pix.rect(g, 29, 8, 3, 2, A);
+    return cv;
+  }
+
+  function sideBike(b) {
+    const c = bikeColors(b);
+    if (b.type === 'classic') return classicBike(c);
+    if (b.type === 'sport') return sportBike(c);
+    if (b.type === 'adventure') return adventureBike(c);
+    const cv = moto(c, false, 0, b.id === 'cf250nk');
+    const g = cv.getContext('2d');
+    Pix.line(g, 31, 22, 36, 21, c.accent);
+    Pix.line(g, 4, 19, 11, 20, c.accent);
+    return cv;
   }
 
   function cone() {
@@ -339,5 +451,5 @@ const Sprites = (() => {
     };
   }
 
-  return { motoSet, build, sign, chevron };
+  return { motoSet, sideBike, build, sign, chevron };
 })();

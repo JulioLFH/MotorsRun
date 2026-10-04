@@ -319,6 +319,13 @@ const Road = (() => {
     ctx.globalAlpha = fog >= 5 ? 1 - (fog - 4) * 0.2 : 1;
     ctx.drawImage(img, 0, 0, img.width, img.height * (dh - ch) / dh, dx, dy, dw, dh - ch);
     ctx.globalAlpha = 1;
+    if (s.beacons) {
+      // balizas intermitentes (ambulancia): se ven de día y de noche
+      ctx.globalCompositeOperation = 'lighter';
+      const gs = Math.max(6, dw * 0.9);
+      for (const [fx, fy, blue] of s.beacons) ctx.drawImage(blue ? SP.glowBlue : SP.glowRed, dx + fx * dw - gs / 2, dy + fy * dh - gs / 2, gs, gs);
+      ctx.globalCompositeOperation = 'source-over';
+    }
     if (m > 0.05 && (s.glow || s.lights)) {
       ctx.globalCompositeOperation = 'lighter';
       if (s.glow) {

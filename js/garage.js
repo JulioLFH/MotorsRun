@@ -2,6 +2,7 @@
 // Menú principal: el garaje con la moto, los cuadros y la vista a la Costa Verde.
 const Garage = (() => {
   const WIN = { x: 296, y: 18, w: 88, h: 152 };
+  const SHOP = { x: 2, y: 172, w: 62, h: 19 };
   let staticC = null, signLima = null;
 
   function bricks(g) {
@@ -203,13 +204,22 @@ const Garage = (() => {
     const bob = Math.round(Math.sin(t * 2) * 1);
     PixelFont.outline(ctx, 'MOTORSRUN', 145, 13 + bob, r => (r < 2 ? '#ff6a5a' : r < 4 ? '#e8343a' : '#a8141a'), '#0a0a0f', 3, 'center');
 
-    // selector de color
+    // selector de moto (entre las que ya tiene el piloto)
     const blink = Math.sin(t * 6) > -0.2;
-    if (blink) {
+    if (blink && o.owned > 1) {
       PixelFont.outline(ctx, '<', 92, 140, o.color.light, '#0a0a0f', 3, 'center');
       PixelFont.outline(ctx, '>', 220, 140, o.color.light, '#0a0a0f', 3, 'center');
     }
     PixelFont.outline(ctx, o.color.name, 156, 192, o.color.light, '#0a0a0f', 1, 'center');
+
+    // botón de la tienda (letrero colgado sobre la caja de herramientas)
+    const S = SHOP, glow = Math.sin(t * 3) > 0;
+    Pix.rect(ctx, S.x, S.y, S.w, S.h, '#2a1810');
+    Pix.rect(ctx, S.x + 1, S.y + 1, S.w - 2, S.h - 2, glow ? '#d42a2f' : '#b3161b');
+    Pix.rect(ctx, S.x + 1, S.y + 1, S.w - 2, 1, 'rgba(255,255,255,0.35)');
+    PixelFont.draw(ctx, 'TIENDA', S.x + S.w / 2, S.y + 4, '#fff2d0', 1, 'center', '#5a0a0e');
+    PixelFont.draw(ctx, o.touch ? 'DE MOTOS' : 'DE MOTOS (T)', S.x + S.w / 2, S.y + 11, '#ffd27a', 1, 'center', '#5a0a0e');
+    PixelFont.draw(ctx, o.version, 3, 1, '#5a5d6a');
 
     // ícono de sonido
     Pix.rect(ctx, 366, 22, 3, 4, '#e8e8ee'); Pix.poly(ctx, [[369, 22], [372, 19], [372, 29], [369, 26]], '#e8e8ee');
@@ -221,8 +231,8 @@ const Garage = (() => {
     if (Math.sin(t * 4) > -0.4) {
       PixelFont.draw(ctx, o.touch ? 'TOCA LA PANTALLA PARA RODAR' : 'PRESIONA ENTER PARA RODAR', 192, 202, '#ffd27a', 1, 'center');
     }
-    PixelFont.draw(ctx, o.touch ? 'IZQ/DER: MANEJAR · BOTONES: TURBO Y FRENO · < >: COLOR' : '← →: MANEJAR · ↓: FRENO · ESPACIO: TURBO · C: FILTRO RETRO', 192, 209, '#8a8fa8', 1, 'center');
+    PixelFont.draw(ctx, o.touch ? '< >: CAMBIAR DE MOTO · TIENDA: COMPRAR MOTOS' : '↑ ACELERAR · ← → MANEJAR · ↓ FRENO · ESPACIO NITRO · T TIENDA', 192, 209, '#8a8fa8', 1, 'center');
   }
 
-  return { draw, ARROW_L: { x: 80, y: 128, w: 26, h: 30 }, ARROW_R: { x: 208, y: 128, w: 26, h: 30 }, SOUND: { x: 362, y: 18, w: 22, h: 14 }, PROFILE: { x: 248, y: 76, w: 46, h: 42 } };
+  return { draw, SHOP, ARROW_L: { x: 80, y: 128, w: 26, h: 30 }, ARROW_R: { x: 208, y: 128, w: 26, h: 30 }, SOUND: { x: 362, y: 18, w: 22, h: 14 }, PROFILE: { x: 248, y: 76, w: 46, h: 42 } };
 })();

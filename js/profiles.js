@@ -18,6 +18,7 @@ const Profiles = (() => {
     return {
       id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       name, pin: pin || '', coins: 0, best: 0, bestKm: 0, games: 0, totalKm: 0, totalCoins: 0, color: 0,
+      owned: [BIKE_START], bike: BIKE_START,
       pending: [], created: new Date().toISOString(),
     };
   }
@@ -41,7 +42,10 @@ const Profiles = (() => {
         }
       } catch (e) { /* ignorar */ }
     }
-    for (const p of data.list) if (!Array.isArray(p.pending)) p.pending = [];
+    for (const p of data.list) {
+      if (!Array.isArray(p.pending)) p.pending = [];
+      fixBikes(p);
+    }
     if (!data.list.find(p => p.id === data.current)) data.current = data.list[0] ? data.list[0].id : null;
     persist();
   }
@@ -65,12 +69,56 @@ const Profiles = (() => {
     return j;
   }
 
+  function fixBikes(p) {
+    if (!Array.isArray(p.owned)) p.owned = [];
+    p.owned = p.owned.filter(id => BIKES.some(b => b.id === id));
+    if (!p.owned.includes(BIKE_START)) p.owned.unshift(BIKE_START);
+    if (!p.owned.includes(p.bike)) p.bike = BIKE_START;
+  }
+
   function merge(p, s) {
     if (!s) return;
     Object.assign(p, {
       coins: s.coins, best: s.best, bestKm: s.bestKm, games: s.games,
       totalKm: s.totalKm, totalCoins: s.totalCoins, color: s.color,
     });
+    // un servidor antiguo (sin tienda) no envía motos: se conservan las locales
+    if (Array.isArray(s.owned)) p.owned = s.owned.slice();
+    if (s.bike) p.bike = s.bike;
+    fixBikes(p);
+  }
+
+  // ---------- Concesionario ----------
+  async function buy(b) {
+    const p = current();
+    if (!p) throw new Error('Primero elige un piloto.');
+    if (p.owned.includes(b.id)) return p;
+    if (isCloud(p)) {
+      await flush(p);
+      if (p.pending.length) throw new Error('Sin conexión. Inténtalo de nuevo.');
+      try {
+        merge(p, (await call('buy', { name: p.name, pin: p.pin, bike: b.id, price: b.price })).profile);
+      } catch (e) {
+        if (/desconocida/i.test(e.message)) throw new Error('La tienda aún no está activa en el servidor. El administrador debe actualizar Code.gs.');
+        throw e;
+      }
+      persist();
+      return p;
+    }
+    if (p.coins < b.price) throw new Error('Te faltan S/ ' + (b.price - p.coins) + '.');
+    p.coins -= b.price;
+    p.owned.push(b.id);
+    p.bike = b.id;
+    persist();
+    return p;
+  }
+
+  function useBike(id) {
+    const p = current();
+    if (!p || !p.owned.includes(id)) return;
+    p.bike = id;
+    persist();
+    if (isCloud(p)) call('bike', { name: p.name, pin: p.pin, bike: id }).catch(() => {});
   }
 
   // Envía las partidas pendientes; si no hay internet quedan guardadas y se reintentan.
@@ -284,7 +332,7 @@ const Profiles = (() => {
   load();
   if (current()) flush(current());
   return {
-    current, create, enter, select, forget, addRun, update, ranking, open, close, isOpen, online,
+    current, create, enter, select, forget, addRun, update, ranking, open, close, isOpen, online, buy, useBike,
     isCloud: () => { const p = current(); return !!p && isCloud(p); },
     get all() { return data.list; },
   };

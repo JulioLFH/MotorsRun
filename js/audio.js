@@ -128,7 +128,29 @@ const Sound = (() => {
     if (master) master.gain.setTargetAtTime(m ? 0 : VOL, ac.currentTime, 0.02);
   }
 
-  const api = { init, engineOn, engineSet, engineOff: () => engineSet(0, false, false), musicStart, musicStop, setMuted };
+  // Sirena de ambulancia (tono alto-bajo) con volumen según la distancia
+  let siren = null;
+  function sirenOn() {
+    if (!ac || siren) return;
+    const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = 'square'; f.type = 'lowpass'; f.frequency.value = 1800; g.gain.value = 0;
+    o.connect(f); f.connect(g); g.connect(sfxBus); o.start();
+    const t0 = ac.currentTime;
+    for (let i = 0; i < 40; i++) o.frequency.setValueAtTime(i % 2 ? 740 : 960, t0 + i * 0.45);
+    siren = { o, g };
+  }
+  function sirenLevel(v) { if (siren) siren.g.gain.setTargetAtTime(0.06 * v, ac.currentTime, 0.1); }
+  function sirenOff() {
+    if (!siren) return;
+    const s = siren; siren = null;
+    s.g.gain.setTargetAtTime(0, ac.currentTime, 0.15);
+    setTimeout(() => { try { s.o.stop(); } catch (e) { /* ya detenido */ } }, 800);
+  }
+  fx.thud = () => { noise(0.25, 0.5, 300); tone(90, 0.25, 'sine', 0.3, 40); };
+  fx.cash = () => seq([1047, 1319, 1568, 2093], 0.06, 'square', 0.08, 0.12);
+  fx.denied = () => { tone(220, 0.15, 'square', 0.1); tone(170, 0.25, 'square', 0.1, null, 0.12); };
+
+  const api = { init, engineOn, sirenOn, sirenOff, sirenLevel, engineSet, engineOff: () => engineSet(0, false, false), musicStart, musicStop, setMuted };
   for (const k in fx) api[k] = () => { if (ac) fx[k](); };
   return api;
 })();

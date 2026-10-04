@@ -151,7 +151,15 @@ body {
   cursor: pointer;
 }
 .pf-del:hover { background: #c8323a; color: #fff8e8; }
-.pf-form { display: flex; gap: 6px; }
+.pf-form { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf-form .pf-input { flex: 1 1 150px; }
+.pf-form .pf-pin { flex: 0 1 90px; letter-spacing: 4px; }
+.pf-btns { display: flex; gap: 6px; flex: 1 1 100%; }
+.pf-btns .pf-add { flex: 1; }
+.pf-add.pf-enter { background: #1f3f8a; box-shadow: 3px 3px 0 #0f1f45; }
+.pf-add:disabled, .pf-input:disabled { opacity: 0.6; cursor: wait; }
+.pf-status { min-height: 16px; margin-top: 6px; font-size: 13px; color: #1f3f8a; }
+.pf-hint { margin-top: 2px; font-size: 12px; color: #7a5a3a; }
 .pf-input {
   flex: 1;
   min-width: 0;

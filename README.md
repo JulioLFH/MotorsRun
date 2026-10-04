@@ -15,11 +15,21 @@ También puedes abrir `index.html` directo en cualquier navegador moderno. No ne
 
 ## Perfiles de piloto
 
-- La primera vez te pide un nombre de piloto. Puedes crear varios (uno por persona).
+- Cada piloto se crea con **nombre y PIN de 4 números** y entra desde cualquier celular o PC con sus mismas monedas.
 - Cada piloto tiene su **billetera**: las monedas (S/) que recoges **se acumulan partida tras partida**.
-- También guarda su récord, distancia máxima, partidas jugadas y el color de su moto.
-- En el garaje, la pizarra muestra al piloto activo. Tócala o presiona `U` para cambiar de piloto, crear uno nuevo o borrarlo.
-- Los perfiles se guardan en el navegador del dispositivo (`localStorage`), así que cada celular o PC tiene los suyos.
+- También guarda su récord, distancia máxima, kilómetros totales, partidas jugadas y el color de su moto.
+- En el garaje, la pizarra muestra al piloto activo. Tócala o presiona `U` para cambiar de piloto, crear uno o entrar con otro.
+- Si se corta el internet, la partida queda guardada en el dispositivo y se envía sola después.
+
+## Panel de administrador (Google Sheets)
+
+Los pilotos se guardan en una hoja de Google Sheets del administrador, en la pestaña **Pilotos**:
+nombre, monedas, récord, mejor km, km totales, partidas, monedas ganadas, color, fecha de creación y última partida.
+El PIN se guarda cifrado en una columna oculta.
+
+- El servidor es `server/Code.gs` (Google Apps Script), publicado como aplicación web con acceso "Cualquier usuario".
+- La URL de esa aplicación web va en `js/config.js`. Si se deja vacía, el juego guarda los perfiles solo en el navegador.
+- Al cambiar `Code.gs`, hay que volver a publicarlo en Apps Script: **Implementar → Administrar implementaciones → editar → Nueva versión**.
 
 ## Cómo jugar
 
@@ -57,7 +67,8 @@ MotorsRun/
 └── js/
     ├── font.js        # fuente bitmap 3x5
     ├── audio.js       # motor, efectos y música chiptune (Web Audio)
-    ├── profiles.js    # perfiles de piloto y billetera de monedas
+    ├── config.js      # URL del servidor de Google Sheets
+    ├── profiles.js    # pilotos con PIN, billetera de monedas y sincronización
     ├── sprites.js     # moto de perfil (garaje), letreros e íconos
     ├── sprites3d.js   # moto de espaldas, tráfico, playa, acantilados e ítems
     ├── road.js        # motor pseudo-3D: pista con curvas y lomas, cielo, sol, mar y niebla

@@ -1,5 +1,14 @@
 # Versiones de MotorsRun
 
+## v1.8.0: Vehículos con costado dibujado en perspectiva
+- Cada vehículo tiene ahora un **dibujo de perfil** en pixel art (puertas, ventanas con reflejos, parantes,
+  manijas, espejos, faros, stops, parachoques y llantas con aro) que se **proyecta sobre su costado en perspectiva real**,
+  columna por columna. Reemplaza a los bloques de color plano que se veían toscos.
+- Perfiles nuevos: taxi (con franja a cuadros y letrero en el techo), sedán en blanco, plata, rojo y azul,
+  SUV con barras de techo, escarabajo clásico, combi "Chorrillos", camioneta con carga, ambulancia y patrullero.
+- **Mototaxi de perfil completo:** moto adelante con el conductor y su casco, cabina con dos pasajeros sentados,
+  toldo con flecos, parantes cromados, carrocería decorada y sus tres ruedas.
+
 ## v1.7.0: Tienda activa, patrullero y pixel art a doble detalle
 - **La tienda funciona con el servidor actual.** Si el servidor todavía no tiene la acción de compra,
   las compras se guardan en la columna "Color" de la hoja (monedas gastadas, motos compradas y moto en uso).

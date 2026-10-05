@@ -7,7 +7,7 @@ al rato cae la noche y se prenden los postes, las luces de la ciudad y los stops
 
 > *Disciplina hoy, libertad mañana. Sueña · Planifica · Trabaja · Logra. Ride safe.*
 
-**Versión actual: v1.7.0.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
+**Versión actual: v1.8.0.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
 
 ## Jugar online
 

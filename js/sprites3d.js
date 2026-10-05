@@ -375,6 +375,195 @@ const Sprites3D = (() => {
   }
 
   // ---------- Tráfico (vistos desde atrás) ----------
+  // ---------- Vehículos de perfil (textura del costado) ----------
+  // Dibujados con la parte trasera a la izquierda y el frente a la derecha; el suelo es el borde inferior.
+  function sideWheel(d, cx, cy, r, rim = '#a8aeb8') {
+    d.disc(cx, cy, r + 0.8, '#121218');
+    d.disc(cx, cy, r, '#0e0e12');
+    d.ring(cx, cy, r - 0.6, r, '#26262e');
+    d.disc(cx, cy, r * 0.62, rim);
+    for (let k = 0; k < 5; k++) {
+      const a = k * Math.PI * 2 / 5 + 0.3;
+      d.fline(cx, cy, cx + Math.cos(a) * r * 0.58, cy + Math.sin(a) * r * 0.58, '#5a5d6a');
+    }
+    d.disc(cx, cy, r * 0.2, '#3a3d48');
+    d.fine(cx - r * 0.5, cy - r * 0.55, r * 0.5, 0.5, '#e8ecf2');
+  }
+
+  function sedanSide(body, kind) {
+    const d = Pix.hd(72, 24);
+    const L = shadeHex(body, 1.1, 20), L2 = shadeHex(body, 1.22, 48), Dk = shadeHex(body, 0.72), Dd = shadeHex(body, 0.5);
+    // silueta con techo, cabina y maletera
+    d.poly([[1, 12.5], [2.5, 10], [19, 9.2], [26, 4], [46, 3.6], [54, 9], [67, 9.8], [70.5, 11.5], [71, 17.5], [69, 19.5], [3, 19.5], [1, 17.5]], body);
+    d.fine(3, 9.6, 16, 0.5, L2); d.fline(19.5, 9, 26, 4.2, L2); d.fine(26.5, 4, 19, 0.5, L2); d.fline(46.5, 4, 54, 9, L); d.fine(54.5, 9.2, 12, 0.5, L2);
+    d.rect(1, 16.5, 70, 3, Dk); d.fine(1, 19, 70, 0.5, Dd);
+    d.fine(2, 12.5, 68, 0.5, L);
+    // ventanas con parante central y reflejos
+    d.poly([[21.5, 9.5], [27, 5.2], [36.5, 5], [36.5, 9.5]], '#1c2438');
+    d.poly([[38, 9.5], [38, 5], [45.5, 4.9], [52, 9.5]], '#1c2438');
+    d.poly([[23.5, 9.5], [27.5, 6.2], [36.5, 6], [36.5, 9.5]], '#26324c');
+    d.poly([[38, 9.5], [38, 6], [45, 5.9], [50, 9.5]], '#26324c');
+    d.fline(28, 9.3, 31, 5.5, 'rgba(180,210,255,0.45)'); d.fline(40, 9.3, 43, 5.5, 'rgba(180,210,255,0.4)');
+    d.fine(21, 9.5, 31.5, 0.5, '#c9ced8');
+    // puertas, manijas y espejo
+    for (const x of [22, 37.2, 52.5]) d.fine(x, 9.5, 0.5, 8.5, Dd);
+    d.fine(30, 11.5, 2.5, 0.5, L2); d.fine(45.5, 11.5, 2.5, 0.5, L2);
+    d.rect(51.5, 8, 2.5, 1.5, Dk); d.fine(51.5, 8, 2.5, 0.5, L);
+    // faros, stop y parachoques
+    d.rect(68.5, 10.5, 2.2, 1.6, '#fff4c8'); d.fine(69, 10.5, 1.5, 0.5, '#ffffff');
+    d.rect(1, 10.8, 2, 2.2, '#d81a20'); d.fine(1, 10.8, 2, 0.5, '#ff9090');
+    d.rect(0.5, 15.5, 3, 3, '#24252c'); d.rect(68.5, 15.5, 3, 3, '#24252c');
+    if (kind === 'taxi') {
+      for (let x = 4; x < 68; x++) { d.fine(x, 13.5, 1, 1, x % 2 ? '#141414' : '#f4f4f4'); d.fine(x, 14.5, 1, 1, x % 2 ? '#f4f4f4' : '#141414'); }
+      d.rect(33, 1.6, 8, 2, '#f4f4f4'); d.fine(33, 3.1, 8, 0.5, '#b8b8c0');
+    } else if (kind === 'police') {
+      d.rect(3, 13, 66, 3, '#1d6b3a'); d.fine(3, 13, 66, 0.5, '#3a9a5a');
+      d.text('POLICÍA', 37, 13.3, '#f4f4f4');
+      d.rect(31, 2, 12, 1.8, '#2a2b33'); d.rect(31.5, 2.3, 5, 1.2, '#d01c1f'); d.rect(37.5, 2.3, 5, 1.2, '#1f5fd0');
+    }
+    // pasos de rueda y llantas
+    d.disc(13, 19.5, 5, '#16161c'); d.disc(58, 19.5, 5, '#16161c');
+    d.rect(7, 19.5, 58, 4.5, 'rgba(0,0,0,0)');
+    sideWheel(d, 13, 20, 4); sideWheel(d, 58, 20, 4);
+    return d.c;
+  }
+
+  function suvSide(body) {
+    const d = Pix.hd(68, 25);
+    const L = shadeHex(body, 1.12, 24), L2 = shadeHex(body, 1.25, 50), Dk = shadeHex(body, 0.72), Dd = shadeHex(body, 0.48);
+    d.poly([[1, 11], [2, 4], [4, 2.5], [50, 2.5], [57, 8.5], [66, 9.5], [67.5, 12], [67.5, 19], [66, 20.5], [2, 20.5], [1, 19]], body);
+    d.fine(4, 2.5, 46, 0.5, L2); d.fline(50.5, 2.8, 57, 8.6, L); d.fine(57.5, 8.8, 8, 0.5, L2);
+    d.rect(1, 17, 66.5, 3.5, Dk); d.fine(1, 20, 66.5, 0.5, Dd); d.fine(2, 11.5, 64, 0.5, L);
+    d.rect(5, 1.2, 42, 1, '#2a2b33'); for (const x of [6, 26, 45]) d.rect(x, 1.2, 1.5, 1.5, '#2a2b33');
+    // tres ventanas
+    d.poly([[3.5, 9], [4.5, 4], [17, 4], [17, 9]], '#1c2438'); d.poly([[18.5, 9], [18.5, 4], [33, 4], [33, 9]], '#1c2438');
+    d.poly([[34.5, 9], [34.5, 4], [49.5, 4], [55, 9]], '#1c2438');
+    d.poly([[19.5, 9], [19.5, 5], [32, 5], [32, 9]], '#26324c'); d.poly([[35.5, 9], [35.5, 5], [49, 5], [53, 9]], '#26324c');
+    d.fline(22, 8.8, 25, 4.6, 'rgba(180,210,255,0.45)'); d.fline(38, 8.8, 41, 4.6, 'rgba(180,210,255,0.4)');
+    for (const x of [18, 33.8, 55.5]) d.fine(x, 9, 0.5, 9.5, Dd);
+    d.fine(28, 11, 2.5, 0.5, L2); d.fine(44, 11, 2.5, 0.5, L2);
+    d.rect(54.5, 7.5, 2.5, 1.6, Dk);
+    d.rect(65.5, 10.3, 2.2, 2, '#fff4c8'); d.rect(1, 10, 1.8, 3, '#d81a20');
+    d.rect(0.5, 16, 3, 3.5, '#24252c'); d.rect(65, 16, 3, 3.5, '#24252c');
+    d.disc(13, 20.5, 5.6, '#16161c'); d.disc(55, 20.5, 5.6, '#16161c');
+    sideWheel(d, 13, 20.5, 4.6); sideWheel(d, 55, 20.5, 4.6);
+    return d.c;
+  }
+
+  // Mototaxi de perfil: cabina con pasajeros, toldo con flecos y la moto con su conductor adelante
+  function mototaxiSide(canopy, deco) {
+    const d = Pix.hd(48, 27);
+    const Ck = shadeHex(canopy, 0.68), Cl = shadeHex(canopy, 1.15, 28), CH = '#c9ced8';
+    // chasis
+    d.line(10, 21.5, 40, 21.5, '#2a2b33', 1.2);
+    // moto delantera: tanque, horquilla, faro y guardabarros
+    d.line(41, 14, 43, 23, '#3a3d48', 1); d.fline(41.5, 14, 43.5, 23, '#8a8f9c');
+    d.poly([[31, 17], [33, 14.5], [40, 14], [42, 16.5], [39, 18.5], [31, 18.5]], canopy);
+    d.fine(33, 14.5, 7, 0.5, Cl);
+    d.rect(31, 18.5, 8, 3, '#3a3d48'); d.fine(32, 19, 6, 0.5, '#6a6e7a');
+    d.rect(43, 13, 2.5, 2, '#2a2b33'); d.rect(44.8, 13.3, 1.2, 1.4, '#fff4c8');
+    d.line(39.5, 12.5, 42.5, 12, '#2a2b33', 0.6);
+    d.poly([[39.5, 19.5], [42, 18], [46, 18.5], [46.5, 20]], canopy);
+    // conductor con casco
+    d.poly([[33, 18], [34.5, 11.5], [37.5, 11.5], [37.5, 18]], '#2a3a6a');
+    d.line(36.5, 13, 40.5, 12.8, '#2a3a6a', 0.8);
+    d.poly([[33.5, 18], [37, 17.5], [38.5, 21.5], [37, 22]], '#23232c');
+    d.rect(36.5, 21.5, 2.5, 1, '#0b0b0f');
+    d.disc(36, 9.5, 2.3, '#c8323a'); d.rect(36.5, 8.8, 2, 1.2, '#2d3f66'); d.fine(34.6, 8.3, 1, 0.5, '#ff9090');
+    // cabina: carrocería decorada, asiento y pasajeros
+    d.poly([[1.5, 22], [1.5, 15], [3, 14], [30, 14], [31, 15.5], [31, 22]], canopy);
+    d.fine(2, 14, 28, 0.5, CH); d.fine(1.5, 21.5, 29.5, 0.5, Ck);
+    d.poly([[3, 20], [13, 15.2], [16, 15.2], [6, 20]], deco); d.poly([[16, 20], [26, 15.2], [29, 15.2], [19, 20]], deco);
+    d.rect(4, 12.5, 25, 1.5, '#4a3424');
+    d.disc(10, 7.5, 2, '#2a1a10'); d.fine(8.6, 6.5, 2.4, 0.8, '#3a2416'); d.poly([[7.5, 13], [8.5, 9.5], [12, 9.5], [12.5, 13]], '#2a6ad0');
+    d.disc(20.5, 7.8, 2, '#1a1008'); d.poly([[18, 13], [19, 9.8], [22.5, 9.8], [23, 13]], '#d8b040');
+    d.fine(10, 12, 4, 0.8, '#1f2f5a'); d.fine(20.5, 12, 4, 0.8, '#23232c');
+    // parantes y toldo con flecos
+    d.rect(2, 3, 1, 11, '#8a8f9c'); d.fine(2, 3, 0.5, 11, '#e0e4ea');
+    d.rect(29.5, 3, 1, 11, '#8a8f9c'); d.fine(29.5, 3, 0.5, 11, '#e0e4ea');
+    d.poly([[0.5, 3.5], [1.5, 1], [32, 1], [33.5, 3.5]], canopy); d.fine(1.5, 1, 30, 0.5, Cl);
+    for (let x = 6; x < 32; x += 6) d.fine(x, 1.5, 0.5, 2, Ck);
+    for (let x = 1, i = 0; x < 33; x += 2.2, i++) d.disc(x + 0.6, 4.2, 0.9, i % 2 ? '#f4f4f4' : Ck);
+    d.rect(1, 17.5, 1.5, 1.8, '#d81a20');
+    // ruedas
+    sideWheel(d, 8.5, 23.5, 3.3, '#9aa0ac'); sideWheel(d, 42.5, 23.5, 3.3, '#9aa0ac');
+    d.poly([[4.5, 20], [8.5, 18.5], [12.5, 20], [12.5, 20.8], [4.5, 20.8]], canopy);
+    return d.c;
+  }
+
+  function beetleSide(body, shade) {
+    const d = Pix.hd(57, 22);
+    const L = shadeHex(body, 1.12, 26), Dk = shade, Dd = shadeHex(shade, 0.7);
+    // silueta clásica del escarabajo: techo en arco, capó bajo y guardabarros redondos
+    d.poly([[2, 16], [2.5, 12.5], [6, 10], [11, 8.8], [14.5, 4.5], [20, 2], [30, 1.8], [36.5, 3.2], [42, 7.5], [48, 9.2], [52.5, 11], [55, 13.5], [55, 16.5]], body);
+    d.disc(11, 16, 5.4, body); d.disc(46, 16, 5.4, body);
+    d.fline(14.8, 4.5, 20, 2.2, L); d.fine(20, 2, 10, 0.5, L); d.fline(30, 2, 36.5, 3.4, L);
+    d.fline(6.5, 12.2, 10.5, 10.8, L); d.fline(41.5, 12.2, 45.5, 10.8, L);
+    // estribo entre guardabarros
+    d.rect(16, 15, 25, 2, Dk); d.fine(16, 16.5, 25, 0.5, Dd);
+    // ventanas redondeadas con marco cromado
+    d.poly([[16, 8.8], [19.5, 4.2], [27.5, 3.6], [27.5, 8.8]], '#1c2438');
+    d.poly([[29, 8.8], [29, 3.6], [35, 4.2], [39, 8.8]], '#1c2438');
+    d.fline(20.5, 8.4, 23, 5, 'rgba(180,210,255,0.45)'); d.fline(31, 8.4, 33, 5.2, 'rgba(180,210,255,0.35)');
+    d.fine(15.5, 8.8, 24, 0.5, '#c9ced8');
+    d.fine(28.2, 4, 0.5, 11, Dd); d.fine(33, 10.5, 2, 0.5, '#e0e4ea');
+    // faro en el guardabarros, stop y parachoques cromados
+    d.disc(51.5, 12, 1.4, '#fff4c8'); d.fine(51, 11.2, 1, 0.5, '#ffffff');
+    d.disc(4.8, 12, 1, '#d81a20');
+    d.rect(0.5, 14.5, 3, 1.2, '#c9ced8'); d.rect(54, 14.5, 3, 1.2, '#c9ced8');
+    sideWheel(d, 11, 17.8, 3.6, '#e0e4ea'); sideWheel(d, 46, 17.8, 3.6, '#e0e4ea');
+    return d.c;
+  }
+
+  function vanSide(kind) {
+    const amb = kind === 'ambulance';
+    const d = Pix.hd(62, 26);
+    const body = amb ? '#f4f4f4' : '#e8e4d8', Dk = amb ? '#c8c8d0' : '#c8c2b0', L = '#ffffff';
+    d.poly([[1, 21], [1, 3], [3, 1.5], [50, 1.5], [55, 4], [60, 11], [61, 13], [61, 21]], body);
+    d.fine(3, 1.5, 47, 0.5, L); d.rect(1, 18.5, 60, 2.5, Dk);
+    if (amb) {
+      d.rect(1, 12, 60, 2.5, '#d01c1f');
+      d.text('AMBULANCIA', 24, 14.8, '#d01c1f');
+      d.rect(36, 6, 2, 6, '#d01c1f'); d.rect(34, 8, 6, 2, '#d01c1f');
+      d.rect(12, 0.2, 14, 1.4, '#2a2b33'); d.rect(12.5, 0.4, 6, 1, '#d01c1f'); d.rect(19.5, 0.4, 6, 1, '#1f5fd0');
+      d.poly([[47, 10], [47, 4], [53, 4], [57.5, 10]], '#1c2438');
+      d.fine(46, 4, 0.5, 14, '#9a9aa4'); d.fine(20, 4, 0.5, 14, '#9a9aa4');
+    } else {
+      for (let x = 4; x < 44; x += 10) { d.rect(x, 4, 8, 6, '#1c2438'); d.rect(x + 0.5, 5, 7, 4.5, '#26324c'); d.fline(x + 2, 9.5, x + 4, 4.5, 'rgba(180,210,255,0.4)'); }
+      d.poly([[47, 10], [47, 4], [53, 4], [57.5, 10]], '#1c2438');
+      d.rect(1, 11.5, 60, 2, '#1f5fd0'); d.rect(1, 13.5, 60, 1, '#d01c1f');
+      d.text('CHORRILLOS', 25, 15.5, '#1f3f8a');
+      d.fine(33, 4, 0.5, 14, '#9a988a'); d.fine(43, 4, 0.5, 14, '#9a988a');
+    }
+    d.rect(59, 12, 2, 2, '#fff4c8'); d.rect(1, 13, 1.5, 3, '#d81a20');
+    d.rect(0.5, 17, 3, 3, '#24252c'); d.rect(58.5, 17, 3, 3, '#24252c');
+    d.disc(11, 21.5, 5, '#16161c'); d.disc(50, 21.5, 5, '#16161c');
+    sideWheel(d, 11, 21.5, 4); sideWheel(d, 50, 21.5, 4);
+    return d.c;
+  }
+
+  function pickupSide() {
+    const d = Pix.hd(66, 21);
+    const body = '#b3161b', L = '#e04a4a', Dk = '#7a0f12';
+    d.poly([[1, 17], [1, 8.5], [37, 8.5], [39, 2.5], [50, 2.5], [56, 7.5], [64, 8.5], [65.5, 11], [65.5, 17]], body);
+    d.fine(1, 8.5, 36, 0.5, L); d.fine(39.5, 2.5, 10, 0.5, L);
+    d.rect(1, 14.5, 64.5, 2.5, Dk);
+    for (const [x, col] of [[4, '#a0703a'], [12, '#b88a4a'], [22, '#a0703a']]) { d.rect(x, 5, 8, 3.6, col); d.fine(x, 5, 8, 0.5, '#d8a868'); }
+    d.disc(32, 7, 1.8, '#3f9a3a'); d.disc(29, 7.5, 1.6, '#e07b39');
+    d.poly([[40, 8], [41.5, 3.5], [49.5, 3.5], [54.5, 8]], '#1c2438'); d.fline(43, 7.8, 45, 4, 'rgba(180,210,255,0.45)');
+    d.fine(38, 8.5, 0.5, 6, Dk); d.fine(55, 8.5, 0.5, 6, Dk); d.fine(48, 10, 2.5, 0.5, L);
+    d.rect(64, 9.5, 1.8, 1.6, '#fff4c8'); d.rect(1, 9.5, 1.6, 2.5, '#ff3030');
+    d.disc(12, 17, 4.8, '#16161c'); d.disc(54, 17, 4.8, '#16161c');
+    sideWheel(d, 12, 17, 3.9); sideWheel(d, 54, 17, 3.9);
+    return d.c;
+  }
+
+  // agrega la textura del costado al modelo 3D del vehículo
+  function withSide(o, sideCanvas, extra = {}) {
+    o.box = Object.assign({}, o.box, { tex: Pix.finish(sideCanvas) }, extra);
+    return o;
+  }
+
   // ---------- Vehículos dibujados a doble detalle ----------
   // kind: 'taxi' | 'police' | null
   function sedanHD(body, kind) {
@@ -828,14 +1017,14 @@ const Sprites3D = (() => {
   function build() {
     return {
       cars: [
-        HDV(sedanHD('#f2c230', 'taxi'), sedan('#f2c230', true)), HDV(sedanHD('#f2c230', 'taxi'), sedan('#f2c230', true)),
-        HDV(sedanHD('#e8e8ee'), sedan('#e8e8ee', false)), HDV(sedanHD('#9aa0ac'), sedan('#9aa0ac', false)), HDV(sedanHD('#b3161b'), sedan('#b3161b', false)),
-        HDV(suvHD('#1a1a22'), suv('#1a1a22')), HDV(suvHD('#e8e8ee'), suv('#e8e8ee')),
-        EO(beetle('#7fb3c8', '#4f8398')), EO(beetle('#f0e2c0', '#b8a888')), EO(beetle('#e07b39', '#a04a1a')),
-        EO(combi()), EO(pickup()),
-        HDV(mototaxiHD('#c8323a', '#ffd23f'), mototaxi('#c8323a')), HDV(mototaxiHD('#1f5fd0', '#f4f4f4'), mototaxi('#1f5fd0')),
-        HDV(mototaxiHD('#e8b818', '#1f5fd0'), mototaxi('#e8b818')),
-        police(),
+        ...['taxi', 'taxi'].map(k => withSide(HDV(sedanHD('#f2c230', k), sedan('#f2c230', true)), sedanSide('#f2c230', k))),
+        ...['#e8e8ee', '#9aa0ac', '#b3161b', '#1f3f8a'].map(c => withSide(HDV(sedanHD(c), sedan(c, false)), sedanSide(c))),
+        ...['#1a1a22', '#e8e8ee'].map(c => withSide(HDV(suvHD(c), suv(c)), suvSide(c))),
+        ...[['#7fb3c8', '#4f8398'], ['#f0e2c0', '#b8a888'], ['#e07b39', '#a04a1a']].map(([c, s]) => withSide(EO(beetle(c, s)), beetleSide(c, s))),
+        withSide(EO(combi()), vanSide('combi')), withSide(EO(pickup()), pickupSide()),
+        ...[['#c8323a', '#ffd23f'], ['#1f5fd0', '#f4f4f4'], ['#e8b818', '#1f5fd0']].map(([c, k]) =>
+          withSide(HDV(mototaxiHD(c, k), mototaxi(c)), mototaxiSide(c, k), { noHood: true })),
+        withSide(police(), sedanSide('#eef0f4', 'police')),
       ],
       palms: [palm(1), palm(2), palm(3)].map(E),
       umbrellas: [umbrella('#d83a3a', '#f4ead0'), umbrella('#2aa8a8', '#f4ead0'), umbrella('#ffd23f', '#e07b39')].map(E),
@@ -845,7 +1034,7 @@ const Sprites3D = (() => {
       signs: [['SAN MIGUEL'], ['MAGDALENA'], ['SAN ISIDRO'], ['MIRAFLORES'], ['BARRANCO'], ['CHORRILLOS'], ['LIMA, PERÚ >', 'COSTA VERDE']].map(l => E(Sprites.sign(l, 22))),
       coin: [0, 1, 2, 3].map(f => E(coin(f))), fuel: E(fuel()), nitro: E(nitro()),
       glowWarm: glow(255, 200, 120, 1), glowRed: glow(255, 40, 40, 1), glowWhite: glow(255, 240, 200, 1),
-      glowBlue: glow(60, 120, 255, 1), ambulance: EO(ambulance()),
+      glowBlue: glow(60, 120, 255, 1), ambulance: withSide(EO(ambulance()), vanSide('ambulance')),
       medic: [E(medic(0)), E(medic(1))],
     };
   }

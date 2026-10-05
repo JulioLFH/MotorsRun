@@ -435,6 +435,15 @@ const Road = (() => {
     }
     // se ve el costado que mira hacia la cámara
     const side = sx < W / 2 - 1 ? 1 : sx > W / 2 + 1 ? -1 : 0;
+    if (B.tex) {
+      // techo, capó y maletera como superficies; el costado es el dibujo de perfil en perspectiva
+      if (!B.noHood) top(0, 1, B.body, 0.02, B.top);
+      if (B.cab) top(B.cab[0], B.cab[1], B.cabTop, B.inset, B.roof);
+      if (B.rails && B.cab) top(B.cab[0] + 0.05, B.cab[1] - 0.05, B.cabTop - 0.03, B.inset + 0.02, '#2a2b33');
+      if (side) drawSideTex(ctx, B.tex, side, R, F, sc, f.sc);
+      ctx.restore();
+      return;
+    }
     const uEnd = B.nose ? (B.cab ? B.cab[1] : 1) : 1;
     if (side) {
       face(0, uEnd, side, 0.96, B.body, 0, B.side);
@@ -489,6 +498,24 @@ const Road = (() => {
       ctx.fillStyle = '#131318'; ctx.fillRect(hx - hr * 0.8, hy - hr * 1.4, hr * 1.6, hr * 1.5);
     }
     ctx.restore();
+  }
+
+  // Proyecta la textura de perfil sobre el plano vertical del costado, una columna de 1 píxel real a la vez.
+  // La columna de textura se elige con interpolación correcta en perspectiva (proporcional a 1/z).
+  function drawSideTex(ctx, tex, side, R, F, sr, sf) {
+    const xr = side > 0 ? R.x1 : R.x0, xf = side > 0 ? F.x1 : F.x0;
+    const span = xf - xr, n = Math.floor(Math.abs(span) * 2);
+    if (n < 1) return;
+    const yrT = R.y(0), yrB = R.y(1), yfT = F.y(0), yfB = F.y(1);
+    const tw = tex.width, th = tex.height;
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n;
+      const u = t * sf / ((1 - t) * sr + t * sf);
+      const col = Math.min(tw - 1, Math.floor(u * tw));
+      const x = Math.floor((xr + span * t) * 2) / 2;
+      const yt = yrT + (yfT - yrT) * t, yb = yrB + (yfB - yrB) * t;
+      ctx.drawImage(tex, col, 0, 1, th, x, yt, 0.5, yb - yt);
+    }
   }
 
   // proyección de un punto (z absoluto) usando los segmentos ya proyectados en este cuadro

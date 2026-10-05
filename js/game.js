@@ -1,7 +1,7 @@
 'use strict';
 // MotorsRun - carrera retro en tercera persona por la Costa Verde.
 (() => {
-  const VERSION = 'v1.8.0';
+  const VERSION = 'v1.9.0';
   const W = 384, H = 216;
   const cvs = document.getElementById('game');
   const wrap = document.getElementById('wrap');
@@ -31,7 +31,7 @@
 
   const cache = new Map();
   function art(b) {
-    if (!cache.has(b.id)) cache.set(b.id, { side: Pix.enhance(Sprites.sideBike(b)), rear: Sprites3D.rearSet(b), rider: Sprites3D.flyingRider(b), carry: Sprites3D.carry(b) });
+    if (!cache.has(b.id)) cache.set(b.id, { side: Pix.finish(Sprites.sideBikeHD(b)), rear: Sprites3D.rearSet(b), rider: Sprites3D.flyingRider(b), carry: Sprites3D.carry(b) });
     return cache.get(b.id);
   }
   let ART = art(curBike());

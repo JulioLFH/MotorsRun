@@ -1,5 +1,15 @@
 # Versiones de MotorsRun
 
+## v1.9.0: Motos con más detalle
+- **Motos de perfil (garaje y tienda) redibujadas a doble detalle:** aros de rayos o de aleación, discos de freno
+  perforados con caliper, frenos de tambor en las clásicas, cadena y piñones, amortiguador con resorte,
+  motor con aletas, tapa de embrague con pernos, radiador con rejilla, escape con protector térmico,
+  chasis multitubular (KTM y CFMOTO), tanque con brillo, sombra y gráfico, asiento con costuras,
+  faro LED, tablero, palancas y espejos. Las KTM llevan chasis, aros y caliper naranjas.
+- **Moto vista desde atrás con más detalle:** disco y caliper trasero, cadena, amortiguadores con resorte en las clásicas,
+  estriberas, palancas, franja reflectiva en el casco y parche en la casaca.
+- Se quitó el escarabajo del tráfico.
+
 ## v1.8.0: Vehículos con costado dibujado en perspectiva
 - Cada vehículo tiene ahora un **dibujo de perfil** en pixel art (puertas, ventanas con reflejos, parantes,
   manijas, espejos, faros, stops, parachoques y llantas con aro) que se **proyecta sobre su costado en perspectiva real**,

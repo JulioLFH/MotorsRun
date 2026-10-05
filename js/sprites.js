@@ -348,6 +348,184 @@ const Sprites = (() => {
     return cv;
   }
 
+  // ---------- Motos de perfil a doble detalle (garaje y tienda) ----------
+  function sideBikeHD(b) {
+    const c = bikeColors(b), T = b.type;
+    const d = Pix.hd(50, 42);
+    const M = c.main, D = c.dark, A = c.accent;
+    const ML = shadeHex(M, 1.18, 40), MD = shadeHex(M, 0.68);
+    const STEEL = '#9ea4b0', CH = '#d8dce4', BLK = '#16161c', ENG = '#34363f', ENG2 = '#4e515e';
+    const ktm = b.brand === 'KTM';
+    const wire = T === 'classic' || T === 'adventure';
+    const rim = T === 'classic' ? CH : T === 'adventure' ? '#d4a02a' : ktm ? '#f07a12' : (A === '#16161c' ? '#2c2c34' : A);
+
+    const wheel = (cx, cy, front) => {
+      d.disc(cx, cy, 7, '#0e0e12');
+      d.ring(cx, cy, 6.4, 7, '#24242c');
+      d.fline(cx - 5.6, cy - 3.6, cx - 3.4, cy - 5.8, '#44444f');
+      d.disc(cx, cy, 5.2, '#141418');
+      d.ring(cx, cy, 4.6, 5.2, rim);
+      d.fine(cx - 3.5, cy - 4, 1.5, 0.5, shadeHex(rim, 1.2, 50));
+      if (wire) {
+        for (let k = 0; k < 18; k++) { const a = k * Math.PI / 9; d.fline(cx, cy, cx + Math.cos(a) * 4.6, cy + Math.sin(a) * 4.6, '#a8aeb8'); }
+      } else {
+        const n = T === 'sport' ? 3 : 5;
+        for (let k = 0; k < n; k++) {
+          const a = k * Math.PI * 2 / n + 0.4;
+          for (const o of [-0.25, 0.25]) d.fline(cx + Math.cos(a + o) * 1.2, cy + Math.sin(a + o) * 1.2, cx + Math.cos(a + o * 0.4) * 4.6, cy + Math.sin(a + o * 0.4) * 4.6, rim);
+        }
+      }
+      if (T === 'classic') {
+        d.disc(cx, cy, 2.6, '#8a8f9c'); d.ring(cx, cy, 2, 2.6, '#c9ced8');
+      } else {
+        d.ring(cx, cy, 2.4, front ? 3.8 : 3.2, '#b8bcc6');
+        for (let k = 0; k < 10; k++) { const a = k * Math.PI / 5; d.fine(cx + Math.cos(a) * (front ? 3.1 : 2.8) - 0.25, cy + Math.sin(a) * (front ? 3.1 : 2.8) - 0.25, 0.5, 0.5, '#5a5d6a'); }
+        if (front) { d.rect(cx + 1.6, cy - 4.4, 2, 2.4, ktm ? '#f07a12' : '#c8282a'); d.fine(cx + 1.8, cy - 4.4, 1.5, 0.5, '#ff9a8a'); }
+        else d.rect(cx - 3.6, cy + 1.6, 1.8, 1.8, '#2a2a32');
+      }
+      d.disc(cx, cy, 1, '#c9ced8'); d.fine(cx - 0.5, cy - 0.5, 0.5, 0.5, '#ffffff');
+    };
+
+    wheel(11, 34, false);
+    wheel(38, 34, true);
+    // caballete
+    d.line(20, 32, 16, 41, '#3a3b45', 0.8);
+    // basculante, cadena y piñones
+    d.line(11, 34, 21.5, 30.5, T === 'classic' ? '#2c2d36' : '#3a3d48', 1.8);
+    d.fline(11.5, 32.8, 21.2, 29.6, '#7a7e8a');
+    d.disc(11, 34, 2.3, '#5a5d6a'); d.ring(11, 34, 1.8, 2.3, '#8a8f9c');
+    d.disc(21.5, 30.8, 1.3, '#7a7e8a');
+    d.fline(11, 31.7, 21.5, 29.5, '#8a8f9c'); d.fline(11, 36.3, 21.5, 32.1, '#6a6e7a');
+    // amortiguador con resorte
+    if (T === 'classic') {
+      for (let i = 0; i < 7; i++) d.fline(11.5 + i * 0.35, 21.5 + i * 1.2, 13 + i * 0.35, 22.1 + i * 1.2, CH);
+    } else {
+      const sp = T === 'adventure' ? '#e8b818' : ktm ? '#f07a12' : '#c8282a';
+      for (let i = 0; i < 7; i++) d.fline(16.6 + i * 0.45, 22.5 + i * 0.95, 18.4 + i * 0.45, 22.9 + i * 0.95, sp);
+    }
+
+    // motor: bloque, cilindro con aletas, tapa de embrague con pernos
+    d.rect(19, 24, 11, 8, ENG);
+    d.poly([[24, 24.5], [29.5, 21], [32, 23.5], [29, 27]], ENG2);
+    for (let i = 0; i < 5; i++) d.fline(25 + i * 0.9, 24 - i * 0.6, 29 + i * 0.6, 26.5 - i * 0.7, '#6e7280');
+    d.disc(23.5, 29, 2.6, ENG2); d.ring(23.5, 29, 2.1, 2.6, '#7a7e8a');
+    for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; d.fine(23.5 + Math.cos(a) * 1.6 - 0.25, 29 + Math.sin(a) * 1.6 - 0.25, 0.5, 0.5, '#a8acb8'); }
+    d.fine(22.6, 28, 1, 0.5, '#9a9eaa');
+    d.rect(26.5, 30.5, 2.5, 1.5, '#2a2b33');
+    d.rect(22, 30, 3, 0.8, '#a8aeb8'); d.fine(21, 30.6, 2, 0.5, '#5a5d6a');
+
+    if (T === 'classic') {
+      // clásica: cromo, faro redondo, asiento largo y escape largo
+      d.rect(4, 25, 12, 1, CH); d.px(3, 26, CH);
+      d.poly([[32.5, 26], [37, 25], [42, 25.5], [43.5, 27], [41.5, 26.5], [34, 27]], CH);
+      d.line(24, 32.5, 6, 31, CH, 1.6); d.fline(7, 30.3, 22, 31.7, '#ffffff');
+      d.rect(2.5, 29.5, 4, 3, '#9ea4b0'); d.rect(2, 30, 1, 2, '#5a5d6a');
+      d.rect(14, 22, 6, 5, D); d.fine(15, 23, 4, 3, MD);
+      d.rect(7, 18, 15, 3, '#2a1a12'); d.fine(7, 18, 15, 0.5, '#5a3a26');
+      for (let x = 8; x < 21; x += 1.2) d.fine(x, 19.4, 0.6, 0.5, '#4a3020');
+      d.rect(2.5, 19, 5.5, 0.8, CH); d.disc(3, 21, 1, '#d81a20'); d.fine(2.6, 20.6, 0.6, 0.5, '#ff9090');
+      d.poly([[20, 20], [23, 16], [31, 16], [33, 19], [31, 22], [22, 22]], M);
+      d.fline(23.2, 16.5, 30.5, 16.5, ML); d.fine(23, 17, 7, 0.5, ML); d.fine(22, 21.5, 9, 0.5, MD);
+      d.rect(26, 18, 2.5, 2, CH); d.fine(26.5, 18.5, 1.5, 1, '#ffffff');
+      d.rect(21.5, 19.5, 2.5, 2, '#2a2a32');
+      d.line(35, 15, 38, 34, CH, 1.6); d.fine(35.8, 22, 1.5, 4, '#3a3b45');
+      d.line(31, 11, 36, 12, CH, 0.6); d.fline(32, 11, 31, 6, '#5a5d6a'); d.disc(31, 5, 1, CH);
+      d.disc(38.5, 15, 3, CH); d.disc(38.5, 15, 2.2, '#fff4c8'); d.fine(38.2, 13.8, 1, 1, '#ffffff');
+      d.disc(34.5, 12, 1.4, BLK); d.fine(34, 11.5, 1, 0.5, '#e8e8ee');
+      d.fine(19, 31.5, 2.5, 0.5, '#c9ced8');
+      return d.c;
+    }
+
+    // escape (naked / aventura): colector, silenciador con protector térmico
+    if (T === 'adventure') {
+      d.line(30, 27, 15, 24, STEEL, 1); d.poly([[2, 21.5], [12, 22.5], [12.5, 25.5], [2.5, 25]], '#8a8f9c');
+      d.poly([[3.5, 22], [10, 22.8], [10, 24], [3.5, 23.4]], '#c0c4cc');
+      d.rect(1.5, 21.5, 1.5, 3.5, '#3a3d48');
+    } else if (T !== 'sport') {
+      d.line(31, 26.5, 29, 32, STEEL, 1); d.line(29, 32.5, 19, 33, STEEL, 1);
+      d.poly([[7, 27.5], [18, 29], [18.5, 32.5], [8, 31.5]], '#8a8f9c');
+      d.poly([[9, 28], [16, 29], [16, 30.4], [9, 29.6]], '#c0c4cc');
+      for (let x = 10; x < 16; x += 1.5) d.fine(x, 28.7, 0.5, 1.2, '#7a7e8a');
+      d.rect(6, 27.3, 2, 4.5, '#3a3d48'); d.disc(6.6, 29.5, 1, '#15151a');
+    } else {
+      d.rect(17, 31, 9, 2.2, '#3a3d48'); d.rect(15.5, 31, 1.5, 2.2, STEEL); d.fine(17, 31, 9, 0.5, '#6a6e7a');
+    }
+    // chasis multitubular (KTM / CFMOTO)
+    if (ktm || b.brand === 'CFMOTO') {
+      const fc = ktm ? '#f07a12' : '#2a2a32';
+      d.line(19, 23, 33, 15.5, fc, 0.9); d.line(19, 23, 30, 25, fc, 0.9);
+      d.line(23, 21, 26, 25, fc, 0.6); d.line(27, 19, 30, 24, fc, 0.6);
+    }
+
+    // colín, stop LED y porta placa
+    const tail = T === 'sport' ? [[2, 15], [14, 18], [20, 21], [18, 23], [8, 21]] : [[2, 18], [13, 19], [19, 21], [18, 23], [14, 23], [6, 21]];
+    d.poly(tail, M);
+    d.fline(tail[0][0] + 1, tail[0][1], tail[1][0], tail[1][1], ML);
+    d.fline(7, 21.3, 15, 23, MD);
+    d.line(T === 'sport' ? 6 : 6, 20, 12, 21.5, A, 0.5);
+    d.rect(1, tail[0][1], 1.8, 1.6, '#d81a20'); d.fine(1.2, tail[0][1], 1.2, 0.5, '#ffb0a0');
+    d.line(8, 22, 6, 27, '#1e1e26', 0.6); d.rect(4.5, 26.5, 1, 3, '#e8e4d0'); d.px(7, 23, '#ffa020');
+    // asiento con costuras
+    d.poly([[11.5, 18], [21.5, 18.8], [22, 20.8], [13.5, 21]], '#141418');
+    for (let x = 12.5; x < 21; x += 1.2) d.fine(x, 19.4, 0.6, 0.5, '#3a3a46');
+    if (T === 'adventure') {
+      d.rect(1, 11, 10, 8, '#9ea4b0'); d.rect(1, 11, 10, 1, '#d8dce4'); d.rect(1, 18, 10, 1, '#5a5f6a');
+      d.fine(1.5, 12, 0.5, 6, '#e0e4ea'); d.rect(5, 14, 2, 1, '#2a2b33'); d.rect(1.5, 14.5, 1, 2, '#d81a20');
+      d.rect(3, 22, 11, 8, '#8a909c'); d.rect(3, 22, 11, 1, '#c9ced8'); d.fine(3.5, 23, 0.5, 6, '#e0e4ea');
+      d.rect(7.5, 25, 2, 1, '#2a2b33');
+    }
+
+    // tanque con brillo, sombra, rodillera y gráfico
+    d.poly([[20, 19], [24, 14.5], [31.5, 13.5], [34.5, 16.5], [33.5, 21], [23, 23]], M);
+    d.poly([[24.2, 15], [31.3, 14], [33.2, 16.2], [25, 16.5]], ML);
+    d.fine(24.5, 14.5, 6.5, 0.5, '#ffffff');
+    d.poly([[22, 21.5], [33.5, 19.5], [33.5, 21], [23, 23]], MD);
+    d.poly([[24.5, 18], [28, 17.5], [27.5, 20.5], [24, 21]], D);
+    d.line(25, 19.8, 33.5, 17.2, A, 0.6);
+    d.disc(29.5, 14, 0.8, '#c9ced8');
+    if (b.id === 'cf250nk') for (const [x, y] of [[29, 17.5], [29, 18.5], [29, 19.5], [29.5, 18], [30, 18.5], [30.5, 17.5], [30.5, 18.5], [30.5, 19.5], [31.5, 17.5], [31.5, 18.5], [31.5, 19.5], [32, 18.5], [32.5, 17.5], [32.5, 19.5]]) d.fine(x, y, 0.5, 0.5, '#ffffff');
+
+    // horquilla, guardabarro y frente según el tipo
+    const gold = ktm || T === 'sport' || T === 'adventure';
+    d.line(36, 15.5, 38, 33, '#26262e', 1.8);
+    d.fline(36.3, 16, 37, 22, gold ? '#d4a02a' : CH); d.fline(36.8, 16, 37.5, 22, gold ? '#f0c84a' : '#ffffff');
+    if (T === 'adventure') {
+      d.line(30, 22, 33, 30, '#2a2a32', 0.6); d.line(29, 31, 33, 30, '#2a2a32', 0.6);
+      d.poly([[19, 31.5], [30, 31.5], [32.5, 28.5], [19, 28.5]], '#a8aeb8'); d.fine(19, 28.5, 13, 0.5, '#e0e4ea');
+      d.poly([[35, 9], [40, 10], [42, 15], [38, 18], [35, 16]], BLK);
+      d.poly([[38, 16], [46, 19], [39, 21]], M); d.fline(39, 16.5, 45.5, 19, ML);
+      d.rect(39, 12, 2, 3, '#fff4c8'); d.fine(39.5, 12.5, 1, 1, '#ffffff');
+      d.poly([[35, 9], [38, 2], [40, 3], [38, 10]], 'rgba(90,120,170,0.75)'); d.fline(38, 3.5, 37.5, 8, 'rgba(220,235,255,0.7)');
+      d.line(30, 9, 35, 10, '#26262e', 0.6); d.rect(28.5, 8, 3, 2, A);
+      d.rect(32.5, 8.2, 2.5, 1.5, '#1a1a20'); d.fine(33, 8.5, 1.5, 0.8, '#5ad1ff');
+      d.rect(33, 26.5, 9, 0.8, BLK);
+    } else if (T === 'sport') {
+      d.poly([[26, 14], [36, 11], [43, 15], [44, 21], [39, 27], [30, 31], [21, 31], [21, 25], [27, 20]], M);
+      d.poly([[27, 15], [35.5, 12], [42, 15.5], [36, 16]], ML); d.fine(28, 14.5, 7, 0.5, '#ffffff');
+      d.line(25, 26, 42, 19, A, 0.9); d.line(26, 27.5, 41, 21, A, 0.6);
+      for (const y of [22, 23.2, 24.4]) d.fine(28, y, 4.5, 0.6, BLK);
+      d.line(21, 30, 30, 30, MD, 0.6); d.line(30, 30, 39, 26, MD, 0.6);
+      d.poly([[34, 11], [38, 6], [41, 7], [37, 12]], 'rgba(90,120,170,0.8)'); d.fline(38, 7, 36, 10.5, 'rgba(220,235,255,0.7)');
+      d.rect(40, 15, 3, 1, '#fff4c8'); d.fine(40.5, 15, 2, 0.5, '#ffffff'); d.px(42, 16, '#ffffff');
+      d.line(31, 13, 34, 14, '#26262e', 0.6); d.rect(35, 10, 3, 1, BLK); d.fine(35.5, 10, 2, 0.5, '#5a6a8a');
+      d.poly([[33.5, 26.5], [37, 25.4], [42, 25.8], [43.5, 27.2], [41, 26.6], [35, 27.4]], M);
+    } else {
+      // naked
+      d.poly([[30, 18], [35, 17], [37, 22], [34, 26], [29, 25]], M); d.fline(30.5, 18, 34.8, 17.2, ML);
+      d.line(31, 21, 36, 20, BLK, 0.8);
+      d.rect(31.5, 19, 2.5, 6, '#2a2b33'); for (let y = 19.5; y < 25; y += 0.8) d.fine(31.5, y, 2.5, 0.5, '#4a4d58');
+      d.poly([[33.5, 26.5], [37, 25.4], [42, 25.8], [43.5, 27.2], [41, 26.6], [35, 27.4]], M);
+      d.poly([[34, 12], [38, 12.5], [41, 16], [40, 19], [35, 18]], BLK);
+      d.rect(39, 14.5, 2, 3.5, '#fff4c8'); d.fine(39.5, 14.5, 1, 3, '#ffffff'); d.fine(38.5, 18.5, 1.5, 0.5, '#bfe6ff');
+      d.px(37, 19, '#ff9a1a');
+      d.rect(33.5, 11, 2.5, 1.5, '#1a1a20'); d.fine(34, 11.4, 1.5, 0.8, '#5ad1ff');
+      d.line(31, 13, 35.5, 13.6, '#26262e', 0.8); d.fline(35.5, 13.6, 36.5, 14.5, '#8a8f9c');
+      d.fline(33, 13, 32.5, 8.5, '#2a2a32'); d.rect(31.5, 7.5, 3, 1.6, BLK); d.fine(32, 7.8, 2, 0.6, '#5a6a8a');
+    }
+    d.rect(22, 30, 3, 0.8, '#a8aeb8'); d.fline(25, 30.4, 27, 31.6, '#7a7e8a');
+    return d.c;
+  }
+
   function sideBike(b) {
     const c = bikeColors(b);
     if (b.type === 'classic') return classicBike(c);
@@ -539,5 +717,5 @@ const Sprites = (() => {
     };
   }
 
-  return { motoSet, sideBike, build, sign, chevron };
+  return { motoSet, sideBike, sideBikeHD, build, sign, chevron };
 })();

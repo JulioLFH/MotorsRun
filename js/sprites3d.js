@@ -204,6 +204,11 @@ const Sprites3D = (() => {
     d.fline(19.5, 2.5 + yo, 21.5, 0.8 + yo, classic ? '#ffffff' : '#5a5b6e');
     d.fline(20, 3.5 + yo, 22, 1.5 + yo, classic ? '#f8f4e8' : '#3e3f50');
     if (!classic) { d.fine(20, 9 + yo, 2, 0.5, '#2e2e3a'); d.fine(26, 9 + yo, 2, 0.5, '#2e2e3a'); }
+    // franja reflectiva del casco, parche en la espalda, palancas y bolsillos
+    d.fine(20.5, 10 + yo, 7, 0.5, classic ? '#d8d4c8' : '#c9ced8');
+    if (type !== 'sport') { d.rect(21, 15 + yo * 0.5, 6, 2, A === '#16161c' ? M : A); d.fine(21.5, 15.5 + yo * 0.5, 5, 0.5, '#f4f4f4'); }
+    d.fline(4.5, gy + 1.8, 1.5, gy + 2.4, '#9aa0ac'); d.fline(43.5, gy + 1.8, 46.5, gy + 2.4, '#9aa0ac');
+    d.fine(16.5, 22, 3, 0.5, seam); d.fine(28.5, 22, 3, 0.5, seam);
     return gy;
   }
 
@@ -211,7 +216,7 @@ const Sprites3D = (() => {
     const col = bikeColors(b);
     const d = Pix.hd(48, 60);
     const M = col.main, L = col.light, D = col.dark, A = col.accent, T = b.type;
-    const ML = shadeHex(M, 1.15, 40);
+    const ML = shadeHex(M, 1.15, 40), CHR = '#d8dce4';
     if (T === 'adventure') {
       for (const x of [1, 38]) {
         d.rect(x, 28, 9, 13, '#9ea4b0'); d.rect(x, 28, 9, 1, '#c9ced8'); d.rect(x, 40, 9, 1, '#5a5f6a');
@@ -241,6 +246,20 @@ const Sprites3D = (() => {
       for (let k = 0; k < 3; k++) d.fline(31 + k * 1.5, 41.5 + k * 0.4, 33 + k * 1.5, 45.5 + k * 0.4, '#6a6e7a');
       d.disc(36, 41, 2, '#3a3d48'); d.ring(36, 41, 1.5, 2, '#c9ced8'); d.px(36, 41, '#15151a');
     }
+    // disco y caliper trasero, cadena, amortiguadores y estriberas
+    d.fine(tx + tw + 0.3, 43, 0.6, 9, '#a8aeb8'); d.rect(tx + tw + 0.2, 44, 1.4, 2.5, T === 'classic' ? '#5a5d6a' : '#c8282a');
+    for (let y = 42; y < 54; y += 1) d.fine(tx - 1, y, 0.6, 0.5, y % 2 ? '#7a7e8a' : '#4a4d58');
+    if (T === 'classic') {
+      for (const x of [14.5, 32]) {
+        d.rect(x, 29, 1.6, 9, '#3a3b45');
+        for (let y = 30; y < 37.5; y += 1) d.fline(x - 0.4, y, x + 2, y + 0.6, CHR);
+      }
+    } else {
+      d.fine(23, 36.5, 2, 3, '#e8b818'); for (let y = 36.5; y < 39.5; y += 0.75) d.fine(22.8, y, 2.4, 0.5, '#c89818');
+    }
+    d.rect(5.5, 33.5, 3.5, 1, '#8a8f9c'); d.rect(39, 33.5, 3.5, 1, '#8a8f9c');
+    d.fine(5.5, 33.5, 3.5, 0.5, '#d8dce4'); d.fine(39, 33.5, 3.5, 0.5, '#d8dce4');
+
     // carenado / tanque a los costados
     if (T === 'sport') {
       d.rect(6, 19, 7, 11, M); d.rect(35, 19, 7, 11, M); d.line(7, 22, 11, 28, A); d.line(40, 22, 36, 28, A);
@@ -277,7 +296,7 @@ const Sprites3D = (() => {
       d.rect(18, 32, 12, 2, '#d81a20');
       for (let x = 18.5; x < 30; x += 1) d.fine(x, 32.5, 0.5, 0.5, '#ffd0c8');
       d.px(14, 33, '#ffa020'); d.px(33, 33, '#ffa020');
-      plate(19, 38);
+      if (T !== 'adventure') plate(19, 38);
       if (T === 'naked') d.rect(15, 31, 18, 1, A);
     }
     if (T !== 'classic' && T !== 'sport') { d.rect(17, 27, 14, 2, '#121216'); d.fine(17, 27, 14, 0.5, '#2a2a32'); }
@@ -1020,7 +1039,6 @@ const Sprites3D = (() => {
         ...['taxi', 'taxi'].map(k => withSide(HDV(sedanHD('#f2c230', k), sedan('#f2c230', true)), sedanSide('#f2c230', k))),
         ...['#e8e8ee', '#9aa0ac', '#b3161b', '#1f3f8a'].map(c => withSide(HDV(sedanHD(c), sedan(c, false)), sedanSide(c))),
         ...['#1a1a22', '#e8e8ee'].map(c => withSide(HDV(suvHD(c), suv(c)), suvSide(c))),
-        ...[['#7fb3c8', '#4f8398'], ['#f0e2c0', '#b8a888'], ['#e07b39', '#a04a1a']].map(([c, s]) => withSide(EO(beetle(c, s)), beetleSide(c, s))),
         withSide(EO(combi()), vanSide('combi')), withSide(EO(pickup()), pickupSide()),
         ...[['#c8323a', '#ffd23f'], ['#1f5fd0', '#f4f4f4'], ['#e8b818', '#1f5fd0']].map(([c, k]) =>
           withSide(HDV(mototaxiHD(c, k), mototaxi(c)), mototaxiSide(c, k), { noHood: true })),

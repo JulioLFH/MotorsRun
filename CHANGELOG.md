@@ -1,5 +1,20 @@
 # Versiones de MotorsRun
 
+## v1.7.0: Tienda activa, patrullero y pixel art a doble detalle
+- **La tienda funciona con el servidor actual.** Si el servidor todavía no tiene la acción de compra,
+  las compras se guardan en la columna "Color" de la hoja (monedas gastadas, motos compradas y moto en uso).
+  Cuando se actualice `Code.gs`, el juego usa el sistema nuevo automáticamente sin perder nada.
+- La compra espera a que termine de enviarse la última partida antes de cobrar (antes podía fallar con "Sin conexión").
+- **Patrullero de la Policía**: blanco con franja verde y letrero "POLICÍA", balizas roja y azul intermitentes.
+- **Pixel art a doble detalle** (dibujado directamente al doble de resolución, no solo agrandado):
+  - Sedán, taxi y SUV: luneta con degradado, desempañador y reflejos, faros envolventes, tercer stop,
+    tapa de maletera, emblema, placa con letras, parachoques con catadióptricos y escape.
+  - Mototaxi: toldo con costuras y flecos, parantes cromados, pasajeros detrás del plástico,
+    carrocería decorada, letrero "MOTOTAXI", placa y guardabarros.
+  - Moto y piloto: casco con brillo, visera y ventilaciones, protector de espalda, costuras,
+    hombreras y coderas, guantes, botas con suela, llanta con dibujo que gira, stop con LEDs,
+    placa con el modelo y escape con rejilla.
+
 ## v1.6.0: Mototaxis, más tráfico y crucero según cilindrada
 - **Velocidad crucero según la cilindrada** de cada moto, ya no 75 km/h para todas:
   125 cc → 55 km/h, 150 cc → 65-70, 250 cc → 80-85, 300-400 cc → 90-95, 450 cc → 100, 700 cc → 105-110 y 890 cc → 120 km/h.

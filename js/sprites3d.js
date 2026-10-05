@@ -156,21 +156,170 @@ const Sprites3D = (() => {
     return c;
   }
 
-  const rearSet = b => ({ ride: [0, 1].map(f => rearBike(b, f, true)), empty: rearBike(b, 0, false) });
+  // ---------- Moto y piloto a doble detalle ----------
+  // Mismas formas que la versión base, rasterizadas al doble y con detalle de 1 píxel real.
+  function drawRiderHD(d, type, M, A) {
+    const yo = type === 'sport' ? 4 : type === 'classic' ? -1 : 0;
+    const classic = type === 'classic';
+    const jacket = classic ? '#4a3020' : '#17171d', back = classic ? '#5a3a26' : '#22222c';
+    const seam = classic ? '#2e1c10' : '#0c0c10', hi = classic ? '#6a4a30' : '#30303c';
+    const PANTS = '#23232c', PANTH = '#34343f';
+    // piernas, rodilleras y botas
+    d.poly([[12, 21], [19, 24], [17, 31], [10, 29]], PANTS); d.poly([[36, 21], [29, 24], [31, 31], [38, 29]], PANTS);
+    d.fine(12, 22, 3, 0.5, PANTH); d.fine(33, 22, 3, 0.5, PANTH);
+    d.rect(8, 28, 5, 7, PANTS); d.rect(35, 28, 5, 7, PANTS);
+    d.fine(8.5, 29, 0.5, 5, PANTH); d.fine(35.5, 29, 0.5, 5, PANTH);
+    d.rect(10.5, 25, 2, 2, M); d.rect(35.5, 25, 2, 2, M);
+    d.rect(7, 34, 7, 3, '#0b0b0f'); d.rect(34, 34, 7, 3, '#0b0b0f');
+    d.fine(7, 36.5, 7, 0.5, '#3a3a46'); d.fine(34, 36.5, 7, 0.5, '#3a3a46');
+    d.fine(9, 34.5, 3, 0.5, '#5a5d6a'); d.fine(36, 34.5, 3, 0.5, '#5a5d6a');
+    // casaca con protector de espalda, costuras y franjas
+    const wide = type === 'sport' ? 2 : 0;
+    d.poly([[14 - wide, 8 + yo], [34 + wide, 8 + yo], [37 + wide, 14 + yo], [33, 26], [15, 26], [11 - wide, 14 + yo]], jacket);
+    d.fine(14 - wide, 8 + yo, 20 + wide * 2, 0.5, hi);
+    d.rect(19, 12 + yo, 10, Math.max(4, 11 - yo), back);
+    for (let y = 13 + yo; y < 23; y += 2) d.fine(19.5, y, 9, 0.5, hi);
+    d.fine(24, 12 + yo, 0.5, Math.max(4, 11 - yo), seam);
+    if (type === 'sport') d.rect(20, 12 + yo, 8, 3, A);
+    d.line(13, 12 + yo, 15, 25, classic ? '#3a2416' : M, 2);
+    d.line(35, 12 + yo, 33, 25, classic ? '#3a2416' : M, 2);
+    d.fline(16.5, 12 + yo, 17.5, 25, seam); d.fline(31.5, 12 + yo, 30.5, 25, seam);
+    d.rect(13, 9 + yo, 4, 3, hi); d.rect(31, 9 + yo, 4, 3, hi);
+    d.rect(16, 24, 16, 2, '#0f0f13'); d.fine(23, 24.5, 2, 1, '#8a8f9c');
+    // brazos, codos y guantes
+    const gy = type === 'sport' ? 19 : 16;
+    const arm = classic ? '#3a2416' : '#1d1d24';
+    d.line(13, 11 + yo, 6, gy, arm, 3); d.line(35, 11 + yo, 42, gy, arm, 3);
+    d.rect(8.5, 13 + yo * 0.5, 2, 2, M); d.rect(37.5, 13 + yo * 0.5, 2, 2, M);
+    d.rect(3, gy - 1, 4, 3, '#0b0b0f'); d.rect(41, gy - 1, 4, 3, '#0b0b0f');
+    d.fine(3.5, gy - 1, 3, 0.5, '#3a3a46'); d.fine(41.5, gy - 1, 3, 0.5, '#3a3a46');
+    // cuello y casco con brillo, franja y ventilaciones
+    d.rect(20, 11 + yo, 8, 3, '#0f0f13');
+    const shell = classic ? '#e8e4d8' : '#131318';
+    d.disc(24, 6 + yo, 6, shell);
+    d.ring(24, 6 + yo, 5.5, 6, classic ? '#b8b4a8' : '#26262e');
+    d.rect(23, yo, 2, 12, classic ? '#c8323a' : M);
+    d.fine(23, yo + 0.5, 0.5, 11, classic ? '#ff6a6a' : shadeHex(M, 1.2, 40));
+    if (type === 'adventure') { d.rect(18, yo, 12, 2, A); d.fine(18, yo, 12, 0.5, shadeHex(A, 1.2, 40)); }
+    d.fline(19.5, 2.5 + yo, 21.5, 0.8 + yo, classic ? '#ffffff' : '#5a5b6e');
+    d.fline(20, 3.5 + yo, 22, 1.5 + yo, classic ? '#f8f4e8' : '#3e3f50');
+    if (!classic) { d.fine(20, 9 + yo, 2, 0.5, '#2e2e3a'); d.fine(26, 9 + yo, 2, 0.5, '#2e2e3a'); }
+    return gy;
+  }
+
+  function rearBikeHD(b, f, rider) {
+    const col = bikeColors(b);
+    const d = Pix.hd(48, 60);
+    const M = col.main, L = col.light, D = col.dark, A = col.accent, T = b.type;
+    const ML = shadeHex(M, 1.15, 40);
+    if (T === 'adventure') {
+      for (const x of [1, 38]) {
+        d.rect(x, 28, 9, 13, '#9ea4b0'); d.rect(x, 28, 9, 1, '#c9ced8'); d.rect(x, 40, 9, 1, '#5a5f6a');
+        d.fine(x + 0.5, 29, 0.5, 11, '#d8dce4'); d.fine(x + 1, 33.5, 7, 0.5, '#7a808c');
+        d.rect(x + 1, 37, 2, 1, '#ff3030');
+      }
+    }
+    d.rect(15, 38, 2, 10, '#2c2d36'); d.rect(31, 38, 2, 10, '#2c2d36');
+    d.fine(15, 38, 0.5, 10, '#4a4d58'); d.fine(31, 38, 0.5, 10, '#4a4d58');
+    // llanta trasera con dibujo que gira
+    const tw = T === 'classic' ? 8 : T === 'sport' ? 11 : 10, tx = 24 - tw / 2;
+    d.rect(tx, 41, tw, 18, '#111115'); d.rect(tx + 1, 40, tw - 2, 20, '#111115');
+    for (let y = 41 + f * 0.75; y < 59; y += 1.5) {
+      d.fine(tx + 1, y, tw / 2 - 1.5, 0.5, '#2a2a34');
+      d.fine(24 + 0.5, y + 0.75, tw / 2 - 1.5, 0.5, '#2a2a34');
+    }
+    d.fine(tx + 0.5, 42, 0.5, 15, '#34343e'); d.fine(tx + tw - 1, 42, 0.5, 15, '#08080a');
+    // escape
+    if (T === 'classic') {
+      d.rect(30, 41, 10, 3, '#c9ced8'); d.fine(30, 41, 10, 0.5, '#ffffff'); d.rect(38, 41, 2, 3, '#5a5f6a');
+    } else if (T === 'adventure') {
+      d.poly([[29, 31], [35, 29], [37, 35], [31, 37]], '#9ea4b0'); d.disc(35, 32, 1, '#3a3d48');
+      d.fline(30, 31.5, 35, 29.5, '#e0e4ea');
+    } else {
+      d.poly([[29, 39], [36, 37], [38, 44], [31, 47]], '#9ea4b0');
+      d.fline(30, 40, 36, 38, '#e8ecf2');
+      for (let k = 0; k < 3; k++) d.fline(31 + k * 1.5, 41.5 + k * 0.4, 33 + k * 1.5, 45.5 + k * 0.4, '#6a6e7a');
+      d.disc(36, 41, 2, '#3a3d48'); d.ring(36, 41, 1.5, 2, '#c9ced8'); d.px(36, 41, '#15151a');
+    }
+    // carenado / tanque a los costados
+    if (T === 'sport') {
+      d.rect(6, 19, 7, 11, M); d.rect(35, 19, 7, 11, M); d.line(7, 22, 11, 28, A); d.line(40, 22, 36, 28, A);
+      d.fine(6, 19, 7, 0.5, ML); d.fine(35, 19, 7, 0.5, ML);
+    } else if (T === 'adventure') {
+      d.rect(8, 19, 6, 10, M); d.rect(34, 19, 6, 10, M); d.rect(8, 23, 6, 1, A); d.rect(34, 23, 6, 1, A);
+      d.fine(8, 19, 6, 0.5, ML); d.fine(34, 19, 6, 0.5, ML);
+    } else if (T === 'classic') {
+      d.rect(11, 22, 3, 5, M); d.rect(34, 22, 3, 5, M); d.fine(11, 22, 3, 0.5, ML); d.fine(34, 22, 3, 0.5, ML);
+    } else {
+      d.rect(10, 22, 4, 7, M); d.rect(34, 22, 4, 7, M); d.fine(10, 22, 4, 0.5, ML); d.fine(34, 22, 4, 0.5, ML);
+    }
+    // colín, stop con LEDs y placa
+    const plate = (x, y) => {
+      d.rect(x, y, 10, 4, '#eceadf'); d.fine(x, y, 10, 0.5, '#1f3f8a'); d.fine(x, y + 3.5, 10, 0.5, '#9a988a');
+      d.text(b.id.replace(/[^a-z0-9]/g, '').slice(0, 4).toUpperCase(), x + 5, y + 1.2, '#1f2f5a');
+    };
+    if (T === 'classic') {
+      d.rect(14, 26, 20, 3, '#2a1a12'); d.fine(14, 26, 20, 0.5, '#5a3a26');
+      d.rect(15, 29, 18, 2, '#c9ced8'); d.fine(15, 29, 18, 0.5, '#ffffff');
+      d.poly([[17, 31], [31, 31], [30, 40], [18, 40]], '#c9ced8'); d.line(18, 32, 29, 32, '#ffffff');
+      d.disc(24, 34, 2, '#d81a20'); d.disc(24, 34, 1, '#ff5a5a'); d.fine(23.5, 33, 1, 0.5, '#ffd0c8');
+      plate(19, 40);
+    } else if (T === 'sport') {
+      d.poly([[16, 25], [32, 25], [28, 33], [20, 33]], M); d.rect(17, 25, 14, 1, L);
+      d.rect(19, 30, 10, 1, '#d81a20');
+      for (let x = 19.5; x < 29; x += 1) d.fine(x, 30.25, 0.5, 0.5, '#ffd0c8');
+      d.line(24, 33, 24, 37, '#26262e'); plate(19, 37);
+      d.px(15, 33, '#ffa020'); d.px(32, 33, '#ffa020');
+    } else {
+      d.rect(18, 36, 12, 4, '#1a1a20');
+      d.poly([[13, 29], [35, 29], [32, 37], [16, 37]], M);
+      d.rect(14, 29, 20, 1, L); d.fine(15, 29, 18, 0.5, '#ffffff'); d.rect(16, 36, 16, 1, D);
+      d.rect(18, 32, 12, 2, '#d81a20');
+      for (let x = 18.5; x < 30; x += 1) d.fine(x, 32.5, 0.5, 0.5, '#ffd0c8');
+      d.px(14, 33, '#ffa020'); d.px(33, 33, '#ffa020');
+      plate(19, 38);
+      if (T === 'naked') d.rect(15, 31, 18, 1, A);
+    }
+    if (T !== 'classic' && T !== 'sport') { d.rect(17, 27, 14, 2, '#121216'); d.fine(17, 27, 14, 0.5, '#2a2a32'); }
+
+    if (rider) {
+      const gy = drawRiderHD(d, T, M, A);
+      const my = T === 'sport' ? gy - 6 : gy - 7;
+      d.line(5, gy - 1, 3, my + 2, '#2a2a32'); d.rect(1, my, 4, 3, '#121216'); d.fine(1.5, my + 0.5, 3, 1, '#5a6a8a');
+      d.line(43, gy - 1, 45, my + 2, '#2a2a32'); d.rect(43, my, 4, 3, '#121216'); d.fine(43.5, my + 0.5, 3, 1, '#5a6a8a');
+      if (T === 'adventure') { d.rect(2, gy - 2, 4, 2, A); d.rect(42, gy - 2, 4, 2, A); }
+    } else {
+      d.rect(18, 20, 12, 5, M); d.rect(18, 20, 12, 1, L);
+      d.rect(17, 25, 14, 3, '#121216');
+      d.line(6, 16, 42, 16, '#26262e', 2);
+      d.line(5, 15, 3, 9, '#2a2a32'); d.rect(1, 7, 4, 3, '#121216');
+      d.line(43, 15, 45, 9, '#2a2a32'); d.rect(43, 7, 4, 3, '#121216');
+    }
+    if (T === 'adventure') {
+      d.rect(14, 21, 20, 11, '#9ea4b0'); d.rect(14, 21, 20, 1, '#c9ced8'); d.rect(14, 31, 20, 1, '#5a5f6a');
+      d.fine(14.5, 22, 0.5, 9, '#e0e4ea');
+      d.rect(16, 27, 16, 1, '#d81a20'); d.rect(22, 24, 4, 1, '#5a5f6a');
+      d.rect(18, 32, 12, 3, M);
+      plate(19, 36);
+    }
+    return d.c;
+  }
+
+  const rearSet = b => ({ ride: [0, 1].map(f => rearBikeHD(b, f, true)), empty: rearBikeHD(b, 0, false) });
 
   // Piloto volando tras el choque final: cuadros rotados y uno tirado en el piso
   function flyingRider(b) {
     const col = bikeColors(b);
-    const base = Pix.canvas(48, 40);
-    drawRider(base.g, b.type === 'sport' ? 'naked' : b.type, col.main, col.accent);
+    const base = Pix.hd(48, 40);
+    drawRiderHD(base, b.type === 'sport' ? 'naked' : b.type, col.main, col.accent);
     const frames = [];
     for (let k = 0; k < 8; k++) {
-      const { c, g } = Pix.canvas(56, 56);
-      g.translate(28, 28); g.rotate(k * Math.PI / 4); g.drawImage(base.c, -24, -20);
+      const { c, g } = Pix.canvas(112, 112);
+      g.translate(56, 56); g.rotate(k * Math.PI / 4); g.drawImage(base.c, -48, -40);
       frames.push(c);
     }
-    const lie = Pix.canvas(44, 52);
-    lie.g.translate(22, 26); lie.g.rotate(Math.PI / 2); lie.g.drawImage(base.c, -24, -20);
+    const lie = Pix.canvas(88, 104);
+    lie.g.translate(44, 52); lie.g.rotate(Math.PI / 2); lie.g.drawImage(base.c, -48, -40);
     return { frames, lying: lie.c };
   }
 
@@ -226,6 +375,123 @@ const Sprites3D = (() => {
   }
 
   // ---------- Tráfico (vistos desde atrás) ----------
+  // ---------- Vehículos dibujados a doble detalle ----------
+  // kind: 'taxi' | 'police' | null
+  function sedanHD(body, kind) {
+    const d = Pix.hd(48, 34);
+    const L = shadeHex(body, 1.1, 20), L2 = shadeHex(body, 1.2, 45), Dk = shadeHex(body, 0.74), Dd = shadeHex(body, 0.5);
+    const T = '#101014';
+    // llantas con banda de rodadura
+    for (const x of [4, 35]) {
+      d.rect(x, 27.5, 9, 6.5, T);
+      d.fine(x + 0.5, 28, 8, 0.5, '#30303a');
+      for (let k = 0.5; k < 9; k += 1.5) d.fine(x + k, 30.5, 0.5, 3, '#1e1e26');
+    }
+    // cabina y luneta con degradado, desempañador y reflejos
+    d.poly([[8, 13.5], [12.5, 4], [35.5, 4], [40, 13.5]], body);
+    d.fine(13, 4, 22, 0.5, L2);
+    d.poly([[11.5, 13], [14.5, 5.5], [33.5, 5.5], [36.5, 13]], '#1a2236');
+    d.poly([[12.5, 13], [15, 7.5], [33, 7.5], [35.5, 13]], '#232e48');
+    d.poly([[13.5, 13], [15.5, 10], [32.5, 10], [34.5, 13]], '#2c3a58');
+    for (let y = 7.5; y < 12.6; y += 1.5) d.fline(15.5, y, 32.5, y, '#3a4c70');
+    d.poly([[16, 12.5], [19, 6], [21, 6], [18, 12.5]], 'rgba(170,200,250,0.35)');
+    d.poly([[22.5, 12.5], [24.5, 8], [25.5, 8], [23.5, 12.5]], 'rgba(170,200,250,0.22)');
+    d.rect(20.5, 4.5, 7, 1, '#d81a20'); d.fine(21, 4.5, 6, 0.5, '#ff9090');
+    // carrocería: brillo arriba, sombra abajo, tapa de maletera y emblema
+    d.poly([[2, 15], [3, 13.5], [45, 13.5], [46, 15], [46, 27], [2, 27]], body);
+    d.rect(2, 13.5, 44, 1.5, L); d.fine(3, 13.5, 42, 0.5, L2);
+    d.rect(2, 24, 44, 3, Dk); d.fine(2, 26.5, 44, 0.5, Dd);
+    d.fine(11, 15.5, 26, 0.5, Dd); d.fine(11, 15.5, 0.5, 6.5, Dd); d.fine(36.5, 15.5, 0.5, 6.5, Dd);
+    d.fine(23, 17, 2, 1, '#d8dce4'); d.fine(23, 17, 2, 0.5, '#ffffff');
+    // faros traseros envolventes
+    d.poly([[2.5, 15], [10.5, 15], [10.5, 19.5], [3, 20]], '#a0101a');
+    d.rect(3.5, 15.5, 6, 2, '#e8282a'); d.fine(4, 15.5, 5, 0.5, '#ffb0a0'); d.rect(8.5, 18, 2, 1.5, '#ff9a1a');
+    d.poly([[37.5, 15], [45.5, 15], [45, 20], [37.5, 19.5]], '#a0101a');
+    d.rect(38.5, 15.5, 6, 2, '#e8282a'); d.fine(39, 15.5, 5, 0.5, '#ffb0a0'); d.rect(37.5, 18, 2, 1.5, '#ff9a1a');
+    // placa
+    d.rect(17.5, 21, 13, 5.5, '#eceadf'); d.fine(17.5, 21, 13, 0.5, '#1f3f8a'); d.fine(17.5, 26, 13, 0.5, '#9a988a');
+    d.text(kind === 'police' ? 'EP1247' : 'MRN264', 24, 22.3, '#1f2f5a');
+    // parachoques, catadióptricos y escape
+    d.rect(1, 26.5, 46, 2.5, '#2a2b33'); d.fine(1, 26.5, 46, 0.5, '#4e515c');
+    d.fine(3, 27.5, 4, 0.5, '#c81a1f'); d.fine(41, 27.5, 4, 0.5, '#c81a1f');
+    d.rect(35, 29, 3, 1.5, '#8a8f9c'); d.fine(35.5, 29.5, 2, 0.5, '#24242c');
+    if (kind === 'taxi') {
+      d.rect(16, 0.5, 16, 3.5, '#f4f4f4'); d.fine(16, 0.5, 16, 0.5, '#ffffff'); d.fine(16, 3.5, 16, 0.5, '#b8b8c0');
+      d.text('TAXI', 24, 0.9, '#d01c1f');
+      for (let x = 2; x < 46; x++) { d.fine(x, 19.5, 1, 1, x % 2 ? '#141414' : '#f4f4f4'); d.fine(x, 20.5, 1, 1, x % 2 ? '#f4f4f4' : '#141414'); }
+    } else if (kind === 'police') {
+      d.rect(2, 17, 8, 1, '#f4f4f4');
+      d.rect(11, 16.5, 26, 4.5, '#1d6b3a'); d.fine(11, 16.5, 26, 0.5, '#3a9a5a');
+      d.text('POLICÍA', 24, 17.2, '#f4f4f4');
+      d.rect(14, 0.5, 20, 3.5, '#2a2b33');
+      d.rect(14.5, 1, 9, 2.5, '#d01c1f'); d.fine(15, 1, 8, 0.5, '#ff8a8a');
+      d.rect(24.5, 1, 9, 2.5, '#1f5fd0'); d.fine(25, 1, 8, 0.5, '#8ab8ff');
+    }
+    return d.c;
+  }
+
+  function suvHD(body) {
+    const d = Pix.hd(50, 40);
+    const L = shadeHex(body, 1.12, 24), L2 = shadeHex(body, 1.25, 50), Dk = shadeHex(body, 0.72), Dd = shadeHex(body, 0.48);
+    for (const x of [4, 36]) {
+      d.rect(x, 32.5, 10, 7.5, '#101014'); d.fine(x + 0.5, 33, 9, 0.5, '#30303a');
+      for (let k = 0.5; k < 10; k += 1.5) d.fine(x + k, 35.5, 0.5, 4, '#1e1e26');
+    }
+    d.poly([[5, 16], [7, 3], [43, 3], [45, 16]], body); d.fine(7.5, 3, 35, 0.5, L2);
+    d.rect(6, 1, 38, 1, '#2a2b33'); d.rect(6, 1, 1.5, 2, '#2a2b33'); d.rect(42.5, 1, 1.5, 2, '#2a2b33');
+    d.poly([[9, 15.5], [10, 4.5], [40, 4.5], [41, 15.5]], '#1a2236');
+    d.poly([[10, 15.5], [10.8, 7], [39.2, 7], [40, 15.5]], '#253050');
+    d.poly([[13, 15], [16, 5], [18, 5], [15, 15]], 'rgba(170,200,250,0.3)');
+    d.fine(14, 13.5, 22, 0.5, '#3a4c70'); d.rect(22, 4.5, 6, 1, '#d81a20');
+    d.rect(3, 16, 44, 16, body); d.rect(3, 16, 44, 1.5, L); d.fine(3, 16, 44, 0.5, L2);
+    d.rect(3, 28, 44, 2, Dk); d.fine(3, 29.5, 44, 0.5, Dd);
+    d.poly([[3.5, 17.5], [10, 17.5], [10, 24], [4, 24.5]], '#a0101a'); d.rect(4.5, 18.5, 4.5, 3, '#e8282a'); d.fine(5, 18.5, 3.5, 0.5, '#ffb0a0');
+    d.poly([[40, 17.5], [46.5, 17.5], [46, 24.5], [40, 24]], '#a0101a'); d.rect(41, 18.5, 4.5, 3, '#e8282a'); d.fine(41.5, 18.5, 3.5, 0.5, '#ffb0a0');
+    d.disc(25, 21.5, 4, '#24252c'); d.ring(25, 21.5, 3, 4, '#5a5d6a'); d.fine(23.5, 19.5, 2, 0.5, '#8a8f9c');
+    d.rect(19, 26, 12, 4.5, '#eceadf'); d.fine(19, 26, 12, 0.5, '#1f3f8a'); d.text('SUV707', 25, 27, '#1f2f5a');
+    d.rect(2, 30.5, 46, 2.5, '#24252c'); d.fine(2, 30.5, 46, 0.5, '#4e515c');
+    return d.c;
+  }
+
+  function mototaxiHD(canopy, deco) {
+    const d = Pix.hd(40, 42);
+    const Ck = shadeHex(canopy, 0.68), Cl = shadeHex(canopy, 1.15, 28), CH = '#c9ced8';
+    // llantas traseras y guardabarros
+    for (const x of [2, 31]) {
+      d.rect(x, 33, 7, 9, '#101014'); d.fine(x + 0.5, 33.5, 6, 0.5, '#30303a');
+      for (let k = 0.5; k < 7; k += 1.5) d.fine(x + k, 36, 0.5, 5.5, '#1e1e26');
+      d.rect(x - 0.5, 31.5, 8, 2, canopy); d.fine(x - 0.5, 31.5, 8, 0.5, CH);
+    }
+    // carrocería trasera decorada
+    d.poly([[3, 34], [3, 24], [4, 23], [36, 23], [37, 24], [37, 34]], canopy);
+    d.rect(3, 23, 34, 1, CH); d.fine(3, 23, 34, 0.5, '#ffffff');
+    d.poly([[3, 31], [12, 24.5], [15, 24.5], [6, 31]], deco); d.poly([[37, 31], [28, 24.5], [25, 24.5], [34, 31]], deco);
+    d.rect(3, 32, 34, 2, Ck);
+    d.text('MOTOTAXI', 20, 25, '#f4f4f4');
+    d.disc(6, 29, 1.5, '#c81a1f'); d.fine(5.5, 28.5, 1, 0.5, '#ff9090');
+    d.disc(34, 29, 1.5, '#c81a1f'); d.fine(33.5, 28.5, 1, 0.5, '#ff9090');
+    d.rect(15, 28.5, 10, 4, '#eceadf'); d.fine(15, 28.5, 10, 0.5, '#1f3f8a'); d.text('M4T0', 20, 29.6, '#1f2f5a');
+    // ventana trasera de plástico con pasajeros
+    d.rect(4.5, 8, 31, 15, '#2a2b33');
+    d.rect(6, 9.5, 28, 12.5, '#3a2a20');
+    d.disc(13, 14.5, 2.5, '#2a1a10'); d.fine(11.5, 13, 3, 1, '#4a3020');
+    d.poly([[9, 22], [10, 17.5], [16, 17.5], [17, 22]], '#2a6ad0'); d.fine(10.5, 17.5, 5, 0.5, '#5a9aff');
+    d.disc(26.5, 14, 2.5, '#1a1008'); d.fine(25, 12.5, 3, 1, '#3a2416');
+    d.poly([[22.5, 22], [23.5, 17], [29.5, 17], [30.5, 22]], '#d8b040'); d.fine(24, 17, 5, 0.5, '#ffe080');
+    d.rect(6, 9.5, 28, 12.5, 'rgba(190,215,240,0.28)');
+    d.poly([[8, 21.5], [12, 10], [14, 10], [10, 21.5]], 'rgba(255,255,255,0.22)');
+    d.fine(6, 22, 28, 0.5, CH);
+    // parantes cromados y toldo con costuras y flecos
+    d.rect(3, 6, 1.5, 18, '#8a8f9c'); d.fine(3, 6, 0.5, 18, '#e0e4ea');
+    d.rect(35.5, 6, 1.5, 18, '#8a8f9c'); d.fine(35.5, 6, 0.5, 18, '#e0e4ea');
+    d.poly([[1, 6.5], [39, 6.5], [36.5, 0.5], [3.5, 0.5]], canopy);
+    d.fine(4, 0.5, 32, 0.5, Cl);
+    for (let x = 8; x < 33; x += 6) d.fline(x, 1, x - 1, 6, Ck);
+    d.rect(1, 5.5, 38, 1, Ck);
+    for (let x = 1.5, i = 0; x < 39; x += 2.5, i++) d.disc(x + 0.5, 7, 1, i % 2 ? '#f4f4f4' : Ck);
+    return d.c;
+  }
+
   // Sedán visto desde atrás (taxi limeño o auto particular)
   function sedan(body, isTaxi) {
     const { c, g } = Pix.canvas(48, 34);
@@ -547,16 +813,30 @@ const Sprites3D = (() => {
   // Todo sprite del mundo pasa por Pix.enhance (doble resolución, luz, sombra y contorno)
   const E = c => Pix.enhance(c);
   const EO = o => Object.assign({}, o, { spr: E(o.spr) });
+  // vehículo dibujado a doble detalle: sprite nuevo + datos 3D del modelo base
+  const HDV = (spr, base) => Object.assign({}, base, { spr: Pix.finish(spr) });
+
+  // Patrullero de la Policía: blanco con franja verde y balizas roja/azul
+  function police() {
+    const base = sedan('#eef0f4', false);
+    const o = HDV(sedanHD('#eef0f4', 'police'), base);
+    o.police = true;
+    o.box = Object.assign({}, base.box, { stripe: [0.5, 0.63, '#1d6b3a'] });
+    return o;
+  }
 
   function build() {
     return {
       cars: [
-        sedan('#f2c230', true), sedan('#f2c230', true), sedan('#e8e8ee', false), sedan('#9aa0ac', false), sedan('#b3161b', false),
-        suv('#1a1a22'), suv('#e8e8ee'),
-        beetle('#7fb3c8', '#4f8398'), beetle('#f0e2c0', '#b8a888'), beetle('#e07b39', '#a04a1a'),
-        combi(), pickup(),
-        mototaxi('#c8323a'), mototaxi('#1f5fd0'), mototaxi('#e8b818'),
-      ].map(EO),
+        HDV(sedanHD('#f2c230', 'taxi'), sedan('#f2c230', true)), HDV(sedanHD('#f2c230', 'taxi'), sedan('#f2c230', true)),
+        HDV(sedanHD('#e8e8ee'), sedan('#e8e8ee', false)), HDV(sedanHD('#9aa0ac'), sedan('#9aa0ac', false)), HDV(sedanHD('#b3161b'), sedan('#b3161b', false)),
+        HDV(suvHD('#1a1a22'), suv('#1a1a22')), HDV(suvHD('#e8e8ee'), suv('#e8e8ee')),
+        EO(beetle('#7fb3c8', '#4f8398')), EO(beetle('#f0e2c0', '#b8a888')), EO(beetle('#e07b39', '#a04a1a')),
+        EO(combi()), EO(pickup()),
+        HDV(mototaxiHD('#c8323a', '#ffd23f'), mototaxi('#c8323a')), HDV(mototaxiHD('#1f5fd0', '#f4f4f4'), mototaxi('#1f5fd0')),
+        HDV(mototaxiHD('#e8b818', '#1f5fd0'), mototaxi('#e8b818')),
+        police(),
+      ],
       palms: [palm(1), palm(2), palm(3)].map(E),
       umbrellas: [umbrella('#d83a3a', '#f4ead0'), umbrella('#2aa8a8', '#f4ead0'), umbrella('#ffd23f', '#e07b39')].map(E),
       lifeguard: E(lifeguard()), surf: E(surf()), stall: E(stall()), lamp: E(lamp()),
@@ -571,8 +851,9 @@ const Sprites3D = (() => {
   }
   const carryHD = b => E(carry(bikeColors(b)));
 
-  const rearSetHD = b => { const s = rearSet(b); return { ride: s.ride.map(E), empty: E(s.empty) }; };
-  const flyingRiderHD = b => { const r = flyingRider(b); return { frames: r.frames.map(E), lying: E(r.lying) }; };
+  const F = c => Pix.finish(c);
+  const rearSetHD = b => { const s = rearSet(b); return { ride: s.ride.map(F), empty: F(s.empty) }; };
+  const flyingRiderHD = b => { const r = flyingRider(b); return { frames: r.frames.map(F), lying: F(r.lying) }; };
 
   return { build, bike, rearSet: rearSetHD, flyingRider: flyingRiderHD, carry: carryHD };
 })();

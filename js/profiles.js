@@ -10,7 +10,7 @@ const Profiles = (() => {
   const online = () => !!api();
   let data = { current: null, list: [] };
   let modal = null, onClose = null, busy = false;
-  const syncing = new Set();
+  const syncing = new Map();
 
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* sin almacenamiento */ } }
 
@@ -76,6 +76,19 @@ const Profiles = (() => {
     if (!p.owned.includes(p.bike)) p.bike = BIKE_START;
   }
 
+  // ---------- Compras con un servidor antiguo (sin acción "buy") ----------
+  // El servidor viejo solo deja escribir la columna "Color". Ahí se guardan, en un solo número,
+  // las monedas gastadas, las motos compradas (máscara de bits) y la moto en uso.
+  const ENC = 1e12, B16 = 65536, B20 = 1048576;
+  function decodeShop(n) {
+    n = +n || 0;
+    if (n < ENC) return null;
+    n -= ENC;
+    return { spent: Math.floor(n / B20), bike: Math.floor(n / B16) % 16, mask: n % B16 };
+  }
+  function encodeShop(spent, bikeIdx, mask) { return ENC + spent * B20 + bikeIdx * B16 + mask; }
+  const maskOf = owned => owned.reduce((m, id) => { const i = BIKES.findIndex(b => b.id === id); return i >= 0 ? m | (1 << i) : m; }, 0);
+
   function merge(p, s) {
     if (!s) return;
     Object.assign(p, {
@@ -85,7 +98,23 @@ const Profiles = (() => {
     // un servidor antiguo (sin tienda) no envía motos: se conservan las locales
     if (Array.isArray(s.owned)) p.owned = s.owned.slice();
     if (s.bike) p.bike = s.bike;
+    const shop = decodeShop(s.color);
+    p.spent = shop ? shop.spent : 0;
+    if (shop) {
+      // billetera = monedas ganadas en el servidor - monedas gastadas en la tienda
+      p.coins = Math.max(0, s.coins - shop.spent);
+      BIKES.forEach((b, i) => { if ((shop.mask >> i) & 1 && !p.owned.includes(b.id)) p.owned.push(b.id); });
+      if (!s.bike && BIKES[shop.bike]) p.bike = BIKES[shop.bike].id;
+    }
     fixBikes(p);
+  }
+
+  // Guarda compras y moto en uso en la columna Color (servidor antiguo)
+  async function saveShopLegacy(p, extraSpent) {
+    const spent = (p.spent || 0) + extraSpent;
+    const idx = Math.max(0, BIKES.findIndex(b => b.id === p.bike));
+    const j = await call('color', { name: p.name, pin: p.pin, color: encodeShop(spent, idx, maskOf(p.owned)) });
+    merge(p, j.profile);
   }
 
   // ---------- Concesionario ----------
@@ -95,12 +124,17 @@ const Profiles = (() => {
     if (p.owned.includes(b.id)) return p;
     if (isCloud(p)) {
       await flush(p);
+      if (p.pending.length) await flush(p);
       if (p.pending.length) throw new Error('Sin conexión. Inténtalo de nuevo.');
+      if (p.coins < b.price) throw new Error('Te faltan S/ ' + (b.price - p.coins) + '.');
       try {
         merge(p, (await call('buy', { name: p.name, pin: p.pin, bike: b.id, price: b.price })).profile);
       } catch (e) {
-        if (/desconocida/i.test(e.message)) throw new Error('La tienda aún no está activa en el servidor. El administrador debe actualizar Code.gs.');
-        throw e;
+        if (!/desconocida/i.test(e.message)) throw e;
+        // servidor antiguo: la compra se registra en la columna Color
+        const prevOwned = p.owned.slice(), prevBike = p.bike;
+        p.owned.push(b.id); p.bike = b.id;
+        try { await saveShopLegacy(p, b.price); } catch (err) { p.owned = prevOwned; p.bike = prevBike; throw err; }
       }
       persist();
       return p;
@@ -118,13 +152,23 @@ const Profiles = (() => {
     if (!p || !p.owned.includes(id)) return;
     p.bike = id;
     persist();
-    if (isCloud(p)) call('bike', { name: p.name, pin: p.pin, bike: id }).catch(() => {});
+    if (isCloud(p)) {
+      call('bike', { name: p.name, pin: p.pin, bike: id })
+        .catch(e => { if (/desconocida/i.test(e.message)) return saveShopLegacy(p, 0).then(persist); })
+        .catch(() => {});
+    }
   }
 
   // Envía las partidas pendientes; si no hay internet quedan guardadas y se reintentan.
-  async function flush(p) {
-    if (!isCloud(p) || syncing.has(p.id)) return;
-    syncing.add(p.id);
+  // si ya hay un envío en curso, devuelve esa misma promesa para poder esperarla
+  function flush(p) {
+    if (!isCloud(p)) return Promise.resolve();
+    if (syncing.has(p.id)) return syncing.get(p.id);
+    const job = flushNow(p);
+    syncing.set(p.id, job);
+    return job;
+  }
+  async function flushNow(p) {
     try {
       let last = null;
       while (p.pending.length) {

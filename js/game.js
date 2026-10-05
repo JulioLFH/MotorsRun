@@ -1,7 +1,7 @@
 'use strict';
 // MotorsRun - carrera retro en tercera persona por la Costa Verde.
 (() => {
-  const VERSION = 'v1.6.0';
+  const VERSION = 'v1.7.0';
   const W = 384, H = 216;
   const cvs = document.getElementById('game');
   const wrap = document.getElementById('wrap');
@@ -236,7 +236,7 @@
     const lane = tpl.slow ? (Math.random() < 0.8 ? 2 : 1) : Math.random() * 3 | 0;
     for (const c of G.cars) if (c.lane === lane && Math.abs(c.z - z) < SEG * 12) return;
     const speed = (tpl.slow ? rand(25, 40) : rand(40, 75)) * U;
-    G.cars.push({ spr: tpl.spr, w: tpl.w, lights: tpl.lights, box: tpl.box, slow: tpl.slow, shadow: 0.95, z, x: LANES_X[lane], tx: LANES_X[lane], lane, speed, passed: false, hit: false, prevRel: null });
+    G.cars.push({ spr: tpl.spr, w: tpl.w, lights: tpl.lights, box: tpl.box, slow: tpl.slow, police: tpl.police, beacons: null, shadow: 0.95, z, x: LANES_X[lane], tx: LANES_X[lane], lane, speed, passed: false, hit: false, prevRel: null });
   }
 
   function addItem(kind, z, x) {
@@ -391,6 +391,7 @@
       c.z += c.speed * dt;
       if (Math.random() < dt * (c.slow ? 0.04 : 0.12)) { c.lane = clamp(c.lane + (Math.random() < 0.5 ? -1 : 1), c.slow ? 1 : 0, 2); c.tx = LANES_X[c.lane]; }
       c.x += clamp(c.tx - c.x, -0.5 * dt, 0.5 * dt);
+      if (c.police) c.beacons = Math.floor(t * 7) % 2 ? [[0.38, 0.05, false]] : [[0.62, 0.05, true]];
       const rel = c.z - pz;
       if (!c.passed && rel < -SEG * 0.5) {
         c.passed = true;

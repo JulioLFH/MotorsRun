@@ -7,7 +7,7 @@ al rato cae la noche y se prenden los postes, las luces de la ciudad y los stops
 
 > *Disciplina hoy, libertad mañana. Sueña · Planifica · Trabaja · Logra. Ride safe.*
 
-**Versión actual: v1.6.0.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
+**Versión actual: v1.7.0.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
 
 ## Jugar online
 
@@ -65,7 +65,7 @@ Las de **aventura** pierden menos velocidad en la arena.
   con dos enfermeros y camilla, o la moto se incendia.
 - **La arena frena.** Salirte de la pista a la playa o al jardín te quita velocidad.
 - **Curvas:** a toda velocidad la fuerza centrífuga te saca; suelta el acelerador o frena.
-- **Tráfico limeño:** taxis, autos, SUV, escarabajos, combis "Chorrillos", camionetas y **mototaxis**
+- **Tráfico limeño:** taxis, autos, SUV, escarabajos, combis "Chorrillos", camionetas, **patrulleros** y **mototaxis**
   (estos van despacio y por el carril derecho).
 - **¡Rozón!** Pasar muy cerca de un carro a más de 100 km/h da +50.
 - **Gasolina:** se acaba con el tiempo (más rápido con nitro). Recoge bidones rojos.

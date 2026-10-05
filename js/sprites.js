@@ -51,14 +51,14 @@ const Pix = {
   // EPX/Scale2x (suaviza diagonales sin borronear), luz arriba-izquierda, sombra abajo-derecha
   // y contorno oscuro de 1 píxel. Devuelve un canvas de (2w+2)x(2h+2) si hay contorno.
   enhance(src, opt = {}) {
-    const outline = opt.outline !== false, shade = opt.shade !== false;
+    const outline = opt.outline !== false, shade = opt.shade !== false, up = opt.scale !== false;
     const w = src.width, h = src.height;
     const sd = src.getContext('2d').getImageData(0, 0, w, h);
     const s32 = new Uint32Array(sd.data.buffer);
-    const W2 = w * 2, H2 = h * 2;
-    const big = new Uint32Array(W2 * H2);
+    const W2 = up ? w * 2 : w, H2 = up ? h * 2 : h;
+    const big = up ? new Uint32Array(W2 * H2) : s32.slice();
     const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? 0 : s32[y * w + x];
-    for (let y = 0; y < h; y++) {
+    for (let y = 0; up && y < h; y++) {
       for (let x = 0; x < w; x++) {
         const P = s32[y * w + x], A = at(x, y - 1), B = at(x + 1, y), C = at(x - 1, y), D = at(x, y + 1);
         const o = (y * 2) * W2 + x * 2;
@@ -109,6 +109,30 @@ const Pix = {
     const { c, g } = Pix.canvas(OW, OH);
     g.putImageData(out, 0, 0);
     return c;
+  },
+
+  // Acabado sin agrandar (para sprites dibujados ya a doble detalle)
+  finish(src, opt = {}) { return Pix.enhance(src, Object.assign({}, opt, { scale: false })); },
+
+  // Lienzo de dibujo a doble resolución: mismas coordenadas de siempre, pero cada
+  // figura se rasteriza al doble (curvas y diagonales más finas). Con .fine(...) se pinta
+  // detalle de 1 píxel real (coordenadas en medios píxeles).
+  hd(w, h) {
+    const { c, g } = Pix.canvas(w * 2, h * 2);
+    const S = v => v * 2;
+    return {
+      c, g,
+      rect: (x, y, ww, hh, col) => Pix.rect(g, S(x), S(y), S(ww), S(hh), col),
+      px: (x, y, col) => Pix.rect(g, S(x), S(y), 2, 2, col),
+      line: (x0, y0, x1, y1, col, th = 1) => Pix.line(g, S(x0), S(y0), S(x1), S(y1), col, th * 2),
+      poly: (pts, col) => Pix.poly(g, pts.map(([x, y]) => [S(x), S(y)]), col),
+      disc: (cx, cy, r, col) => Pix.disc(g, S(cx), S(cy), r * 2, col),
+      ring: (cx, cy, r0, r1, col) => Pix.ring(g, S(cx), S(cy), r0 * 2, r1 * 2, col),
+      // detalle fino en coordenadas de medio píxel
+      fine: (x, y, ww, hh, col) => Pix.rect(g, Math.round(x * 2), Math.round(y * 2), Math.max(1, Math.round(ww * 2)), Math.max(1, Math.round(hh * 2)), col),
+      fline: (x0, y0, x1, y1, col) => Pix.line(g, x0 * 2, y0 * 2, x1 * 2, y1 * 2, col, 1),
+      text: (s, x, y, col) => PixelFont.draw(g, s, S(x), S(y), col, 1, 'center'),
+    };
   },
 
   ring(g, cx, cy, r0, r1, col) {

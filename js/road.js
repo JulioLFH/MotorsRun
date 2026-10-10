@@ -113,6 +113,8 @@ const Road = (() => {
       else if (R() < 0.09) add(s, SP.palms[R() * 3 | 0], -1.55 - R() * 0.9, 620 + R() * 160, { hit: 0.08 });
       else if (R() < 0.05) add(s, SP.umbrellas[R() * 3 | 0], -1.4 - R() * 0.9, 420, { hit: 0.15 });
       else if (R() < 0.015) add(s, SP.surf, -1.35, 300, { hit: 0.12 });
+      // surfistas en el mar
+      if (SP.surfers && R() < 0.02) add(s, SP.surfers[R() * SP.surfers.length | 0], -3.1 - R() * 0.9, 300, { shadow: 0 });
     }
   }
 
@@ -254,8 +256,42 @@ const Road = (() => {
     tile(ctx, nearDay, hillOff, hz - 39);
     if (m > 0) { ctx.globalAlpha = m; tile(ctx, nearNight, hillOff, hz - 39); ctx.globalAlpha = 1; }
 
+    // parapentes sobre los acantilados (de día)
+    if (m < 0.85 && SP.paragliders) {
+      ctx.globalAlpha = 1 - m;
+      for (let i = 0; i < 4; i++) {
+        let x = mod(232 + i * 38 + (i % 2 ? 300 : 0) - hillOff * 0.8 + Math.sin(t * 0.13 + i) * 14, T);
+        if (x > W + 20) x -= T;
+        const y = hz - 56 + i * 9 + Math.sin(t * 0.7 + i * 2) * 3;
+        const s = 0.62 - i * 0.06, pg = SP.paragliders[i];
+        ctx.drawImage(pg, Math.round(x * 2) / 2, Math.round(y * 2) / 2, pg.width * s / 2 * 2, pg.height * s / 2 * 2);
+      }
+      ctx.globalAlpha = 1;
+    }
+    // gaviotas aleteando
+    if (m < 0.9) {
+      ctx.fillStyle = m > 0.5 ? 'rgba(20,20,40,0.6)' : '#3a2a3a';
+      for (let i = 0; i < 7; i++) {
+        const x = mod(i * 61 - t * (9 + i) - skyOff * 0.6, W + 40) - 20;
+        const y = hz - 62 + (i * 13) % 26 + Math.sin(t * 0.8 + i) * 4;
+        const f = Math.sin(t * (7 + i * 0.5) + i) > 0 ? -0.5 : 0.5;
+        ctx.fillRect(x - 1.5, y + f, 1.5, 0.5); ctx.fillRect(x, y, 0.5, 0.5); ctx.fillRect(x + 0.5, y + f, 1.5, 0.5);
+      }
+    }
+
     const far = PAL[FOG - 1];
     Pix.rect(ctx, 0, hz + 1, W, H - hz, far.sea1);
+    // veleros en el horizonte
+    if (SP.sailboat) {
+      ctx.globalAlpha = 1 - m * 0.6;
+      for (let i = 0; i < 3; i++) {
+        let x = mod(60 + i * 230 + t * (1.5 + i * 0.6) - skyOff * 0.35, T);
+        if (x > W + 10) x -= T;
+        const sb = SP.sailboat, s = 0.32 + i * 0.05;
+        ctx.drawImage(sb, x, hz - sb.height * s / 2 + 2 + Math.sin(t * 1.3 + i) * 0.3, sb.width * s / 2, sb.height * s / 2);
+      }
+      ctx.globalAlpha = 1;
+    }
     if (m < 0.95) {
       ctx.fillStyle = far.glint;
       for (let y = hz + 1; y < hz + 5; y += 0.5) {
@@ -346,6 +382,20 @@ const Road = (() => {
       const sw = half(x + w * 1.35);
       fill(ctx, rR + rw, y, sw - rR - rw, walk);
       fill(ctx, sw, y, W - sw, side);
+    }
+    // ojos de gato en las líneas de carril (brillan de noche)
+    if (seg.index % 4 === 0 && !seg.start && p1.y <= clipY && p1.w > 6) {
+      const ds = Math.max(0.5, half(p1.w * 0.022));
+      ctx.fillStyle = m > 0.3 ? '#fff2a0' : '#f4f4f4';
+      for (let i = 1; i < LANES; i++) ctx.fillRect(half(p1.x - p1.w + 2 * p1.w * i / LANES - ds / 2), p1.y - ds, ds, ds);
+      if (m > 0.3) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = m * 0.6;
+        const gs = ds * 6;
+        for (let i = 1; i < LANES; i++) ctx.drawImage(SP.glowWarm, p1.x - p1.w + 2 * p1.w * i / LANES - gs / 2, p1.y - ds / 2 - gs / 2, gs, gs);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+      }
     }
   }
 
@@ -549,6 +599,13 @@ const Road = (() => {
     } else if (s.lift && sy <= clipY) {
       const base = sy + s.lift * scale * YS, sw = dw * 0.5;
       if (base <= clipY) { ctx.fillStyle = 'rgba(20,8,20,0.25)'; ctx.fillRect(half(sx - sw / 2), half(base - 0.5), half(sw), 1); }
+    }
+    if (s.halo) {
+      // brillo dorado alrededor del casco extra
+      ctx.globalCompositeOperation = 'lighter';
+      const gs = dw * 2.6 * s.halo;
+      ctx.drawImage(SP.glowWarm, dx + dw / 2 - gs / 2, dy + dh / 2 - gs / 2, gs, gs);
+      ctx.globalCompositeOperation = 'source-over';
     }
     ctx.drawImage(img, 0, 0, img.width, img.height * (dh - ch) / dh, dx, dy, dw, dh - ch);
     ctx.globalAlpha = 1;

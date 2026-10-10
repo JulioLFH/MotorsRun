@@ -7,7 +7,7 @@ al rato cae la noche y se prenden los postes, las luces de la ciudad y los stops
 
 > *Disciplina hoy, libertad mañana. Sueña · Planifica · Trabaja · Logra. Ride safe.*
 
-**Versión actual: v1.9.0.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
+**Versión actual: v1.10.0.** Ver el historial en [CHANGELOG.md](CHANGELOG.md).
 
 ## Jugar online
 
@@ -61,6 +61,7 @@ Las de **aventura** pierden menos velocidad en la arena.
 ## Reglas
 
 - **3 cascos (vidas).** Pierdes uno al chocar con un carro, una palmera, un poste, un letrero, al irte contra el cerro o al **caer al mar**.
+- **Casco extra cada 5 minutos:** aparece un casco dorado en la pista; si lo recoges ganas una vida (hasta 5).
 - Al perder el tercero hay **tres finales posibles**: sales volando en cámara lenta, te recoge la ambulancia
   con dos enfermeros y camilla, o la moto se incendia.
 - **La arena frena.** Salirte de la pista a la playa o al jardín te quita velocidad.

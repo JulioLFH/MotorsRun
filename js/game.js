@@ -1,7 +1,7 @@
 'use strict';
 // MotorsRun - carrera retro en tercera persona por la Costa Verde.
 (() => {
-  const VERSION = 'v1.9.0';
+  const VERSION = 'v1.10.0';
   const W = 384, H = 216;
   const cvs = document.getElementById('game');
   const wrap = document.getElementById('wrap');
@@ -41,6 +41,7 @@
   const U = MAX / 180;            // unidades del mundo por km/h
   const UNITS_PER_M = MAX / 50;
   const LANES_X = [-2 / 3, 0, 2 / 3];
+  const HELMET_EVERY = 300, HELMET_RETRY = 30, MAX_LIVES = 5;   // casco extra cada 5 minutos, hasta 5 vidas
   const PW = 0.12;
 
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -135,6 +136,7 @@
       shake: 0, skyOff: 0, hillOff: 0, nextItem: SEG * 25, nextKm: 1,
       turbo: false, stall: false, reason: '', newBest: false, final: 0, quote: QUOTES[0],
       night: 0, smokeT: 0, countdown: 3.2, lastCount: 4, slide: 0, crash: null,
+      helmetT: HELMET_EVERY, helmetOut: false,
       bike: curBike(),
     };
     for (let i = 0; i < 3; i++) spawnCar(PZ + SEG * (30 + i * 35));
@@ -240,7 +242,7 @@
   }
 
   function addItem(kind, z, x) {
-    const d = { coin: [SP.coin[0], 150, 70], fuel: [SP.fuel, 170, 0], nitro: [SP.nitro, 140, 0] }[kind];
+    const d = { coin: [SP.coin[0], 150, 70], fuel: [SP.fuel, 170, 0], nitro: [SP.nitro, 140, 0], helmet: [SP.helmet, 190, 90] }[kind];
     G.items.push({ kind, spr: d[0], w: d[1], lift: d[2], shadow: 0.8, z, x, ph: Math.random() * 4, got: false, prevRel: null });
   }
 
@@ -411,6 +413,18 @@
 
     // ítems
     if (g.dist > g.nextItem) { spawnItems(pz + SEG * (DRAW - 8)); g.nextItem = g.dist + SEG * rand(20, 45); }
+
+    // casco extra: aparece cada 5 minutos de recorrido; si se pasa sin recogerlo, vuelve a salir a los 30 s
+    if (!g.helmetOut && g.lives < MAX_LIVES) {
+      g.helmetT -= dt;
+      if (g.helmetT <= 0) {
+        addItem('helmet', pz + SEG * (DRAW - 12), LANES_X[Math.random() * 3 | 0]);
+        g.helmetOut = true;
+        banner('¡CASCO EXTRA!', 'RECÓGELO EN LA PISTA: +1 VIDA');
+        Sound.milestone();
+      }
+    }
+    for (const it of g.items) if (it.kind === 'helmet') it.halo = 0.9 + Math.sin(t * 6) * 0.2;
     for (const it of g.items) {
       if (it.kind === 'coin') it.spr = SP.coin[Math.floor(t * 10 + it.ph) % 4];
       const rel = it.z - pz;
@@ -423,11 +437,17 @@
         } else if (it.kind === 'fuel') {
           g.fuel = Math.min(100, g.fuel + 30); Sound.fuel(); float(W / 2, H - 70, '+GASOLINA', '#7dff9a');
         } else {
-          g.nitro = Math.min(100, g.nitro + 40); Sound.nitro(); float(W / 2, H - 70, '+NITRO', '#5ad1ff');
+          if (it.kind === 'helmet') {
+            g.lives = Math.min(MAX_LIVES, g.lives + 1);
+            g.helmetOut = false; g.helmetT = HELMET_EVERY;
+            Sound.bonus(); float(W / 2, H - 70, '+1 CASCO', '#ffd23f');
+            for (let i = 0; i < 14; i++) part({ x: W / 2 + rand(-10, 10), y: H - 50, vx: rand(-90, 90), vy: rand(-120, -20), life: 0.6, color: i % 2 ? '#ffd23f' : '#fff3b0', grav: 200 });
+          } else { g.nitro = Math.min(100, g.nitro + 40); Sound.nitro(); float(W / 2, H - 70, '+NITRO', '#5ad1ff'); }
         }
       }
       it.prevRel = rel;
     }
+    for (const it of g.items) if (it.kind === 'helmet' && !it.got && it.z - pz <= -SEG * 3) { g.helmetOut = false; g.helmetT = HELMET_RETRY; }
     g.items = g.items.filter(it => !it.got && it.z - pz > -SEG * 3);
 
     // gasolina y puntaje
@@ -672,9 +692,17 @@
     ctx.fillStyle = 'rgba(24,10,12,0.72)';
     ctx.fillRect(0, 0, W, 13);
     Pix.rect(ctx, 0, 13, W, 1, 'rgba(240,226,192,0.35)');
-    for (let i = 0; i < 3; i++) ctx.drawImage(i < g.lives ? SPR.helmetOn : SPR.helmetOff, 3 + i * 9, 3);
-    ctx.drawImage(SP.coin[0], 33, 2, 9, 9);
-    PixelFont.draw(ctx, 'S/' + g.coins, 45, 4, '#ffd23f');
+    const slots = Math.max(3, g.lives);
+    for (let i = 0; i < slots; i++) ctx.drawImage(i < g.lives ? SPR.helmetOn : SPR.helmetOff, 3 + i * 9, 3);
+    // cuenta regresiva para el próximo casco extra
+    if (state === 'play' && g.countdown <= 0) {
+      const s = Math.max(0, Math.ceil(g.helmetT));
+      const txt = g.helmetOut ? '¡CASCO EN LA PISTA!' : g.lives >= MAX_LIVES ? 'CASCOS AL MÁXIMO' : 'CASCO EXTRA EN ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+      PixelFont.draw(ctx, txt, 3, 16, g.helmetOut && Math.sin(t * 8) > 0 ? '#ffd23f' : '#d8c8a0', 1, 'left', '#1a0a0a');
+    }
+    const cx0 = 6 + slots * 9;
+    ctx.drawImage(SP.coin[0], cx0, 2, 9, 9);
+    PixelFont.draw(ctx, 'S/' + g.coins, cx0 + 12, 4, '#ffd23f');
     PixelFont.draw(ctx, String(Math.floor(g.score)).padStart(6, '0'), W / 2, 4, '#fff2d0', 1, 'center');
     const km = g.dist / UNITS_PER_M / 1000;
     PixelFont.draw(ctx, DISTRICTS[Math.floor(km) % DISTRICTS.length] + ' · ' + km.toFixed(2) + ' KM', W - 22, 4, '#f0e2c0', 1, 'right');

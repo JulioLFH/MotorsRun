@@ -394,6 +394,50 @@ const Sprites3D = (() => {
   }
 
   // ---------- Tráfico (vistos desde atrás) ----------
+  // ---------- Casco extra, parapentes, veleros y surfistas ----------
+  function helmetPickup() {
+    const d = Pix.hd(18, 16);
+    d.disc(9, 8, 7, '#e8b818');
+    d.disc(9, 8, 6, '#ffd23f');
+    d.poly([[9, 1.5], [15, 5], [16, 10], [11, 9], [10, 6]], '#ffe68a');
+    d.rect(10, 6.5, 6, 3.5, '#1f2f5a'); d.fine(10.5, 7, 4, 0.8, '#9cc0ff');
+    d.rect(8.5, 1.2, 1.5, 13, '#c8323a'); d.fine(8.7, 1.5, 0.5, 12, '#ff8a8a');
+    d.fline(3.5, 5, 6, 2.5, '#ffffff'); d.fline(3.2, 6.5, 5.5, 3.6, '#fff4c8');
+    d.rect(3, 13, 12, 1.6, '#b8860b'); d.fine(3.5, 13, 11, 0.5, '#ffe68a');
+    d.text('+1', 5, 9.5, '#7a4a00');
+    return Pix.finish(d.c);
+  }
+
+  function paraglider(col, col2) {
+    const d = Pix.hd(18, 14);
+    d.poly([[1, 4], [3, 1.5], [9, 0.5], [15, 1.5], [17, 4], [15, 3], [9, 2.2], [3, 3]], col);
+    for (let x = 3; x < 16; x += 2.5) d.fine(x, 1.5, 1.2, 1.5, col2);
+    d.fine(4, 1.3, 10, 0.5, '#ffffff');
+    for (const x of [2, 6, 12, 16]) d.fline(x, 3.5, 9, 10, 'rgba(60,40,40,0.55)');
+    d.rect(8, 10, 2, 2.5, '#2a2a34'); d.disc(9, 9.5, 0.9, '#d0a070'); d.fine(8.5, 12.5, 1, 1, '#1f2f5a');
+    return Pix.finish(d.c, { outline: false });
+  }
+
+  function sailboat() {
+    const d = Pix.hd(14, 14);
+    d.poly([[7, 1], [7, 10], [12, 10]], '#f4f0e4'); d.poly([[6.5, 3], [6.5, 10], [2.5, 10]], '#e8e0cc');
+    d.fine(7, 1, 0.5, 10, '#5a4a3a');
+    d.poly([[1, 10.5], [13, 10.5], [11, 12.5], [3, 12.5]], '#8a3a2a'); d.fine(2, 10.5, 10, 0.5, '#c86a4a');
+    return Pix.finish(d.c, { outline: false });
+  }
+
+  function surfer(board) {
+    const d = Pix.hd(22, 16);
+    d.poly([[0, 13], [3, 10], [9, 9], [16, 10], [22, 12], [22, 16], [0, 16]], 'rgba(255,255,255,0.85)');
+    for (let x = 1; x < 21; x += 3) d.disc(x + 1, 10.5, 1.2, '#ffffff');
+    d.poly([[4, 12], [18, 11], [19, 12], [5, 13]], board); d.fine(5, 12, 13, 0.5, '#ffffff');
+    d.line(9, 11.5, 10, 8, '#1a1a22', 0.8); d.line(13, 11.5, 12, 8, '#1a1a22', 0.8);
+    d.poly([[9.5, 8], [12.5, 8], [12, 4], [10, 4]], '#1a1a22');
+    d.line(10, 5, 7, 6.5, '#1a1a22', 0.6); d.line(12, 5, 15, 4, '#1a1a22', 0.6);
+    d.disc(11, 2.8, 1.2, '#c99a6a'); d.fine(10, 1.8, 2, 0.8, '#2a1a10');
+    return Pix.finish(d.c);
+  }
+
   // ---------- Vehículos de perfil (textura del costado) ----------
   // Dibujados con la parte trasera a la izquierda y el frente a la derecha; el suelo es el borde inferior.
   function sideWheel(d, cx, cy, r, rim = '#a8aeb8') {
@@ -1054,6 +1098,10 @@ const Sprites3D = (() => {
       glowWarm: glow(255, 200, 120, 1), glowRed: glow(255, 40, 40, 1), glowWhite: glow(255, 240, 200, 1),
       glowBlue: glow(60, 120, 255, 1), ambulance: withSide(EO(ambulance()), vanSide('ambulance')),
       medic: [E(medic(0)), E(medic(1))],
+      helmet: helmetPickup(),
+      paragliders: [paraglider('#e8343a', '#ffd23f'), paraglider('#1f5fd0', '#f4f4f4'), paraglider('#2aa84a', '#ffd23f'), paraglider('#f07a12', '#1f3f8a')],
+      sailboat: sailboat(),
+      surfers: [surfer('#ffd23f'), surfer('#2aa8a8'), surfer('#e8343a')],
     };
   }
   const carryHD = b => E(carry(bikeColors(b)));

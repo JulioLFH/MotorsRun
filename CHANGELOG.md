@@ -1,5 +1,13 @@
 # Versiones de MotorsRun
 
+## v1.10.0: Casco extra cada 5 minutos y escenario con más vida
+- **Casco extra:** cada 5 minutos de recorrido aparece un casco dorado brillante en la pista con el aviso
+  "¡CASCO EXTRA!". Al recogerlo ganas **+1 vida** (máximo 5). Si se te pasa, vuelve a aparecer a los 30 segundos.
+  Arriba a la izquierda se ve cuánto falta para el próximo; con 5 cascos el contador se pausa.
+- El tablero muestra hasta 5 cascos y corre las monedas para hacerles espacio.
+- **Escenario con más detalle:** parapentes sobre los acantilados (como en Miraflores), gaviotas aleteando,
+  veleros en el horizonte, surfistas en el mar y ojos de gato en las líneas de la pista que brillan de noche.
+
 ## v1.9.0: Motos con más detalle
 - **Motos de perfil (garaje y tienda) redibujadas a doble detalle:** aros de rayos o de aleación, discos de freno
   perforados con caliper, frenos de tambor en las clásicas, cadena y piñones, amortiguador con resorte,

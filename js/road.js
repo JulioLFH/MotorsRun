@@ -6,7 +6,7 @@ const Road = (() => {
   const CAM_DEPTH = 1 / Math.tan(50 * Math.PI / 180), DRAW = 150, FOG = 8;
   const PLAYER_Z = CAM_H * CAM_DEPTH;
   let segments = [], trackLength = 0, SP = null;
-  let skyDay, skyNight, sunC, moonC, cloudsC, farDay, farNight, nearDay, nearNight;
+  let skyDay, skyNight, sunC, moonC, cloudsC, farDay, farNight, nearDay, nearNight, cliffDay, cliffNight, shadowC;
   let stars = [], sunX = 110;
 
   const mod = (a, n) => ((a % n) + n) % n;
@@ -15,6 +15,7 @@ const Road = (() => {
   // ---------- Paletas: atardecer y noche ----------
   const DAY = {
     road1: '#5c5060', road2: '#554a5a', rum1: '#c8323a', rum2: '#f0e6d2', lane: '#f0e6d2',
+    roadD: '#4a4050', roadL: '#6e6272', sandW: '#c49462', seaL: '#8aa2d8',
     sand1: '#e8b878', sand2: '#ddab6a', foam: '#fff0d8', sea1: '#3d5490', sea2: '#354a84',
     walk1: '#a89a8a', walk2: '#9c8e7e', side1: '#6a7a3a', side2: '#62723a', glint: '#ffd690', fog: '#e8987a',
     cliff1: '#b08a5c', cliff2: '#a17d52', cliffD: '#7a5c3c', cliffL: '#d0a874', veg1: '#5a8a3a', veg2: '#4a7a30',
@@ -22,6 +23,7 @@ const Road = (() => {
   };
   const NIGHT = {
     road1: '#26242f', road2: '#22202b', rum1: '#7a1a22', rum2: '#8a8698', lane: '#a6a2b4',
+    roadD: '#1c1a24', roadL: '#34313e', sandW: '#46393c', seaL: '#34477a',
     sand1: '#5a4a4a', sand2: '#544444', foam: '#8a96c0', sea1: '#111b3c', sea2: '#0e1735',
     walk1: '#3a3844', walk2: '#363440', side1: '#1f2a22', side2: '#1c2620', glint: '#c8d4ff', fog: '#1c2040',
     cliff1: '#3a3038', cliff2: '#342a32', cliffD: '#241c24', cliffL: '#4a3e46', veg1: '#1e3424', veg2: '#182c1e',
@@ -32,13 +34,14 @@ const Road = (() => {
   const css = c => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
   const D = {}, N = {};
   for (const k in DAY) { D[k] = hex(DAY[k]); N[k] = hex(NIGHT[k]); }
-  let PAL = [], palNight = -1;
+  let PAL = [], palNight = -1, FOGC = D.fog;
 
   function palette(m) {
     if (PAL.length && Math.abs(m - palNight) < 0.004) return;
     palNight = m;
     const base = {};
     for (const k in D) base[k] = mix(D[k], N[k], m);
+    FOGC = base.fog;
     PAL = [];
     for (let l = 0; l < FOG; l++) {
       const f = l / (FOG - 1) * 0.85, p = {};
@@ -134,20 +137,110 @@ const Road = (() => {
   }
   const HD = (c, shade = true) => Pix.enhance(c, { outline: false, shade });
 
-  function hills(base, top, lights, amp, seed, h, gap) {
+  // Cerros en silueta con volumen: laderas que miran al sol (a la izquierda) más claras
+  // y bruma que aclara el pie de los cerros hacia el horizonte.
+  function hills(base, top, lights, amp, seed, h, gap, haze) {
     const { c, g } = Pix.canvas(T, h);
     const R = rng(seed), TAU = Math.PI * 2;
+    const B = hex(base), L = hex(top), Z = hex(haze || base);
+    const bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+    const ys = new Float32Array(T);
     for (let x = 0; x < T; x++) {
       const u = x / T;
       let v = amp * (0.55 + 0.25 * Math.sin(TAU * 2 * u + seed) + 0.15 * Math.sin(TAU * 7 * u + seed * 2) + 0.05 * Math.sin(TAU * 23 * u));
       if (gap) v *= Math.max(0, Math.min(1, (Math.sin(TAU * u + seed) + 0.25) * 2.2));
-      const y = Math.round(h - v);
+      ys[x] = h - v;
+    }
+    for (let x = 0; x < T; x++) {
+      const y = Math.round(ys[x]);
       if (y >= h) continue;
-      Pix.rect(g, x, y, 1, h - y, base);
+      const slope = ys[(x + T - 1) % T] - ys[x];       // > 0: la ladera sube hacia la derecha y mira al sol
+      const lit = Math.max(0, Math.min(1, slope * 1.6));
+      for (let yy = y; yy < h; yy++) {
+        const k = yy / h, dz = Math.pow(k, 1.6) * 0.6;
+        let col = mix(B, Z, dz);
+        const depth = yy - y;
+        if (lit > 0 && depth < 2 + lit * 5) col = mix(col, L, 0.55 * lit * (1 - depth / (2 + lit * 5)));
+        // tramado de la bruma para que no se vea en franjas
+        if ((bayer[yy & 3][x & 3] / 16) < (dz * 4) % 1 * 0.5) col = mix(col, Z, 0.08);
+        Pix.px(g, x, yy, css(col));
+      }
       Pix.px(g, x, y, top);
       if (lights && R() < 0.18 && h - y > 3) Pix.px(g, x, y + 2 + (R() * (h - y - 2) | 0), R() < 0.6 ? '#ffd27a' : '#ffb347');
     }
     return c;
+  }
+
+  // Textura del acantilado de la Costa Verde (conglomerado): cárcavas verticales, estratos, canto rodado,
+  // mallas con vegetación y la cima verde de borde irregular. Se repite cada CT_SEGS segmentos y se
+  // proyecta columna por columna sobre la pared, anclada a la cima.
+  const CT_W = 256, CT_H = 256, CT_SEGS = 8, CT_WORLD = 4000;
+  function cliffTexture() {
+    const { c, g } = Pix.canvas(CT_W, CT_H);
+    const img = g.createImageData(CT_W, CT_H), d = img.data;
+    const TAU = Math.PI * 2, R = rng(4242);
+    const per = (x, f, ph) => Math.sin(TAU * f * x / CT_W + ph);
+    const hash = (x, y) => { let h = Math.imul(x * 374761393 + y * 668265263, 1274126177); h ^= h >>> 13; return ((Math.imul(h, 1103515245) >>> 0) % 1000) / 1000; };
+    const C = {
+      hi: hex('#ecc088'), mid: hex('#c8965e'), lo: hex('#94683e'), dark: hex('#5c3e28'),
+      peb: hex('#f6dcae'), pebD: hex('#6e4c30'),
+      veg: hex('#4f8a34'), vegHi: hex('#86c24c'), vegLo: hex('#2f5a24'), net: hex('#5e9440'),
+    };
+    const tb = new Float32Array(CT_W), crown = new Float32Array(CT_W), gully = new Float32Array(CT_W), vine = new Float32Array(CT_W);
+    for (let x = 0; x < CT_W; x++) {
+      tb[x] = 2.5 + 1.6 * per(x, 22, 0.4) + 1.1 * per(x, 46, 2.1) + 0.6 * per(x, 74, 1);
+      crown[x] = 16 + 5 * per(x, 3, 0.5) + 3 * per(x, 17, 1.7) + 2 * per(x, 38, 3);
+      gully[x] = 0.5 * per(x, 5, 1) + 0.3 * per(x, 13, 2) + 0.2 * per(x, 31, 4);
+    }
+    for (let k = 0; k < 16; k++) {
+      const x = R() * CT_W | 0, len = 10 + R() * 50;
+      vine[x] = Math.max(vine[x], len); vine[(x + 1) % CT_W] = Math.max(vine[(x + 1) % CT_W], len * 0.7);
+    }
+    const blobs = Array.from({ length: 12 }, () => ({ x: R() * CT_W, y: 60 + R() * 150, rx: 6 + R() * 12, ry: 5 + R() * 14 }));
+    for (let y = 0; y < CT_H; y++) {
+      for (let x = 0; x < CT_W; x++) {
+        const o = (y * CT_W + x) * 4, n = hash(x, y);
+        let col = null;
+        if (y < tb[x]) { d[o + 3] = 0; continue; }
+        const vy = y - tb[x];
+        if (vy < crown[x] || vy < crown[x] + vine[x] && n < 0.85) {
+          // cima verde: luz arriba, matas oscuras abajo y borde que gotea
+          col = vy < 1.5 ? C.vegHi : n < 0.22 ? C.vegLo : n < 0.5 ? C.veg : mix(C.veg, C.vegHi, 0.35);
+          if (vy > crown[x] - 2 && vy < crown[x]) col = C.vegLo;
+        } else {
+          const t = y / CT_H;
+          // tono base con luz cálida arriba y oscuro al pie
+          col = t < 0.5 ? mix(C.hi, C.mid, t / 0.5) : mix(C.mid, C.lo, (t - 0.5) / 0.5);
+          // cárcavas: canales verticales de erosión
+          const gv = gully[x] + (hash(x, y >> 3) - 0.5) * 0.18;
+          if (gv < -0.35) col = mix(col, C.dark, Math.min(0.75, (-0.35 - gv) * 2.2 + 0.25));
+          else if (gv > 0.45) col = mix(col, C.hi, 0.25);
+          // estratos levemente ondulados
+          const s = Math.sin(y * 0.21 + 0.9 * per(x, 3, 0) + 0.4 * per(x, 9, 1));
+          if (s > 0.94) col = mix(col, C.dark, 0.35);
+          else if (s < -0.97) col = mix(col, C.hi, 0.2);
+          // canto rodado: piedritas con su sombra
+          if (n < 0.014) col = mix(col, C.peb, 0.7);
+          else if (hash(x, y - 1) < 0.014) col = mix(col, C.pebD, 0.5);
+          // mallas de contención con vegetación
+          for (const b of blobs) {
+            let dx = Math.abs(x - b.x); dx = Math.min(dx, CT_W - dx);
+            const e = (dx / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2;
+            if (e < 1 && n < 0.9 - e * 0.5) { col = e < 0.3 && n < 0.3 ? C.vegHi : n < 0.45 ? C.net : C.vegLo; break; }
+          }
+          // sombra al pie del acantilado
+          if (t > 0.88) col = mix(col, C.dark, (t - 0.88) / 0.12 * 0.65);
+        }
+        d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
+      }
+    }
+    g.putImageData(img, 0, 0);
+    // versión nocturna: azulada y oscura
+    const n = Pix.canvas(CT_W, CT_H);
+    const nd = g.getImageData(0, 0, CT_W, CT_H), q = nd.data;
+    for (let i = 0; i < q.length; i += 4) { q[i] = q[i] * 0.26 + 6; q[i + 1] = q[i + 1] * 0.25 + 8; q[i + 2] = q[i + 2] * 0.36 + 22; }
+    n.g.putImageData(nd, 0, 0);
+    return [c, n.c];
   }
 
   function buildBackdrop() {
@@ -179,25 +272,58 @@ const Road = (() => {
       Pix.disc(g, 12, 7, 6, '#000');
       moonC = HD(c);
     }
-    // nubes
+    // nubes de atardecer: cúmulos de base plana, encendidos desde abajo por el sol y malva arriba
     {
-      const { c, g } = Pix.canvas(T, 34);
-      const Rc = rng(5);
-      for (let k = 0; k < 9; k++) {
-        const x = Rc() * T | 0, y = 4 + (Rc() * 22 | 0), w = 30 + (Rc() * 70 | 0);
-        for (const ox of [0, -T]) {
-          Pix.rect(g, x + ox, y, w, 3, '#f4a08c');
-          Pix.rect(g, x + ox + 6, y - 2, w - 14, 2, '#f8b89a');
-          Pix.rect(g, x + ox + 14, y - 3, w * 0.4 | 0, 1, '#ffd2a8');
-          Pix.rect(g, x + ox + 3, y + 3, w - 6, 1, '#b0607a');
+      const CH = 40;
+      const { c, g } = Pix.canvas(T, CH);
+      const img = g.createImageData(T, CH), d = img.data;
+      const Rc = rng(5), blobs = [];
+      for (let k = 0; k < 8; k++) {
+        const cx = Rc() * T, base = 12 + Rc() * 24, w = 40 + Rc() * 90, n = 4 + (Rc() * 4 | 0);
+        for (let i = 0; i < n; i++) {
+          const p = i / (n - 1) - 0.5, r = (w / n) * (0.75 + Rc() * 0.4) * (1.25 - Math.abs(p));
+          blobs.push({ x: cx + p * w * 0.85 + (Rc() - 0.5) * 6, y: base - r * 0.2, rx: r, ry: r * 0.42, base });
         }
       }
+      const cols = ['#a8648a', '#c87a90', '#e8948c', '#f6b08e', '#ffd29a'].map(hex);
+      const bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+      for (let y = 0; y < CH; y++) {
+        for (let x = 0; x < T; x++) {
+          let best = null, bf = 0;
+          for (const b of blobs) {
+            if (y > b.base) continue;
+            let dx = Math.abs(x - b.x); dx = Math.min(dx, T - dx);
+            const e = (dx / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2;
+            if (e < 1) {
+              // altura dentro del cúmulo: 0 arriba, 1 en la base
+              const f = (y - (b.y - b.ry)) / (b.base - (b.y - b.ry));
+              if (!best || f > bf) { best = b; bf = f; }
+            }
+          }
+          if (!best) continue;
+          const v = Math.max(0, Math.min(0.999, bf)) * 4 + bayer[y & 3][x & 3] / 16 - 0.5;
+          const col = cols[Math.max(0, Math.min(4, Math.round(v)))];
+          const o = (y * T + x) * 4;
+          d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
+        }
+      }
+      g.putImageData(img, 0, 0);
       cloudsC = HD(c);
     }
-    farDay = HD(hills('#7a4a78', '#9a5a86', false, 20, 1.3, 30, false));
-    farNight = HD(hills('#161a38', '#222850', true, 20, 1.3, 30, false), false);
-    nearDay = HD(hills('#4a2a52', '#6a3a62', false, 34, 4.1, 40, true));
-    nearNight = HD(hills('#0c0f22', '#181c3a', true, 34, 4.1, 40, true), false);
+    farDay = HD(hills('#7a4a78', '#c87888', false, 20, 1.3, 30, false, '#d27a72'));
+    farNight = HD(hills('#161a38', '#2a3060', true, 20, 1.3, 30, false, '#262c5a'), false);
+    nearDay = HD(hills('#4a2a52', '#8a4a6a', false, 34, 4.1, 40, true, '#9a5466'));
+    nearNight = HD(hills('#0c0f22', '#1e2448', true, 34, 4.1, 40, true, '#161b3c'), false);
+    [cliffDay, cliffNight] = cliffTexture();
+    // sombra suave y elíptica para todo lo que toca el piso
+    {
+      const { c, g } = Pix.canvas(64, 16);
+      for (const [rx, ry, a] of [[31, 7.5, 0.16], [27, 6.4, 0.16], [22, 5.2, 0.16], [16, 3.8, 0.18], [10, 2.6, 0.2]]) {
+        g.fillStyle = `rgba(16,6,20,${a})`;
+        g.beginPath(); g.ellipse(32, 8, rx, ry, 0, 0, Math.PI * 2); g.fill();
+      }
+      shadowC = c;
+    }
   }
 
   // Las capas están a doble resolución: se dibujan a tamaño lógico con desplazamiento de medio píxel
@@ -249,7 +375,7 @@ const Road = (() => {
     }
 
     ctx.globalAlpha = 1 - m * 0.8;
-    tile(ctx, cloudsC, skyOff * 0.8, hz - 72);
+    tile(ctx, cloudsC, skyOff * 0.8, hz - 78);
     ctx.globalAlpha = 1;
     tile(ctx, farDay, hillOff * 0.5, hz - 29);
     if (m > 0) { ctx.globalAlpha = m; tile(ctx, farNight, hillOff * 0.5, hz - 29); ctx.globalAlpha = 1; }
@@ -300,6 +426,31 @@ const Road = (() => {
         if (Math.sin(t * 7 + y * 9) > -0.4) ctx.fillRect(Math.round((sunX - gw / 2 + j) * 2) / 2, y, Math.round(gw * 1.2) / 2, 0.5);
       }
     }
+    // bruma sobre la línea del horizonte (perspectiva atmosférica)
+    const fc = FOGC.map(v => v | 0).join(',');
+    const hg = ctx.createLinearGradient(0, hz - 14, 0, hz + 6);
+    hg.addColorStop(0, `rgba(${fc},0)`);
+    hg.addColorStop(0.7, `rgba(${fc},${0.42 - m * 0.2})`);
+    hg.addColorStop(1, `rgba(${fc},0)`);
+    ctx.fillStyle = hg;
+    ctx.fillRect(0, hz - 14, W, 20);
+  }
+
+  // Resplandor del sol sobre la escena y destellos de lente hacia el centro (solo al atardecer)
+  function drawSunFlare(ctx, m, hz = HORIZON) {
+    const k = Math.max(0, 1 - m / 0.35);
+    if (k <= 0 || sunX < -80 || sunX > W + 80) return;
+    const sy = hz - 16 + m * 50;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.2 * k;
+    ctx.drawImage(SP.glowWarm, sunX - 120, sy - 90, 240, 180);
+    const dx = W / 2 - sunX, dy = H * 0.7 - sy;
+    for (const [p, s, a] of [[0.45, 8, 0.22], [0.7, 5, 0.3], [1.15, 18, 0.12], [1.45, 7, 0.2]]) {
+      ctx.globalAlpha = a * k;
+      ctx.drawImage(p > 1 ? SP.glowBlue : SP.glowWarm, sunX + dx * p - s / 2, sy + dy * p - s / 2, s, s);
+    }
+    ctx.restore();
   }
 
   // Mar visto desde la ventana del garaje
@@ -344,6 +495,9 @@ const Road = (() => {
     const sand = alt ? P.sand1 : P.sand2, side = alt ? P.side1 : P.side2, walk = alt ? P.walk1 : P.walk2;
     const sea = sAlt ? P.sea1 : P.sea2;
     const span = Math.max(0.5, p1.y - p2.y);
+    // pseudoaleatorio fijo por segmento: los detalles quedan pegados a la pista y pasan con la velocidad
+    const rnd = k => { const v = Math.sin(seg.index * 12.9898 + k * 78.233) * 43758.5453; return v - Math.floor(v); };
+    let fbPrev = -1;
     // líneas de medio píxel lógico = 1 píxel real
     for (let y = top; y < bot; y += 0.5) {
       const f = (y - p2.y + 0.25) / span;
@@ -351,7 +505,17 @@ const Road = (() => {
       const rL = half(x - w), rR = half(x + w), rw = Math.max(0.5, half(w * 0.1));
       const foamX = half(x - w * 2.7), sandX = half(x - w * 2.55);
       const row = Math.round(y * 2);
+      const fb = Math.floor(f * 6), first = fb !== fbPrev;
+      fbPrev = fb;
       fill(ctx, 0, y, foamX, sea);
+      // crestas de espuma en el mar
+      if (first && w > 2 && rnd(fb) < 0.55) {
+        const cx = half(x - w * (2.95 + rnd(fb + 9) * 3.2)), cw = Math.max(0.5, half(w * (0.1 + rnd(fb + 17) * 0.18)));
+        if (cx + cw < foamX - w * 0.15) {
+          fill(ctx, cx, y, cw, P.seaL);
+          if (w > 40) fill(ctx, half(cx + cw * 0.2), y + 0.5, half(cw * 0.7), P.foam);
+        }
+      }
       // brillos del sol sobre el mar
       if (m < 0.95 && foamX > 0 && ((seg.index * 7 + row) % 5 === 0)) {
         const gw = 2 + (y - HORIZON) * 0.45;
@@ -362,14 +526,29 @@ const Road = (() => {
       const surf = sAlt ? half(w * 0.12) : half(w * 0.05);
       fill(ctx, foamX - surf, y, surf, P.foam);
       fill(ctx, foamX, y, sandX - foamX, (row + seg.index) % 3 ? P.foam : sand);
-      fill(ctx, sandX, y, rL - rw - sandX, sand);
-      if (row % 7 === 0 && w > 20) fill(ctx, half(sandX + (seg.index * 17 % 13) / 13 * (rL - rw - sandX)), y, 0.5, alt ? P.sand2 : P.sand1);
+      // arena mojada junto a la orilla
+      const wetX = half(x - w * 2.35);
+      fill(ctx, sandX, y, wetX - sandX, P.sandW);
+      fill(ctx, wetX, y, rL - rw - wetX, sand);
+      if (row % 7 === 0 && w > 20) fill(ctx, half(wetX + (seg.index * 17 % 13) / 13 * (rL - rw - wetX)), y, 0.5, alt ? P.sand2 : P.sand1);
       fill(ctx, rL - rw, y, rw, rum);
       if (seg.start) {
-        const cw = Math.max(0.5, half(w / 6));
-        for (let k = 0; k < 12; k++) fill(ctx, rL + k * cw, y, cw, (k + (row >> 2)) % 2 ? '#f4f4f4' : '#141418');
+        // línea de partida: tablero de ajedrez de dos filas, no en toda la pista
+        const cw = Math.max(0.5, half(w / 6)), fr = Math.floor(f * 2);
+        fill(ctx, rL, y, rR - rL, road);
+        if (seg.index === 4) for (let k = 0; k < 12; k++) fill(ctx, rL + k * cw, y, cw, (k + fr) % 2 ? '#f4f4f4' : '#141418');
       } else {
         fill(ctx, rL, y, rR - rL, road);
+        // asfalto gastado: franja de aceite al centro de cada carril
+        if (w > 4) {
+          const lw2 = 2 * w / LANES, tw = half(lw2 * 0.22);
+          for (let i = 0; i < LANES; i++) fill(ctx, half(x - w + lw2 * (i + 0.5) - tw / 2), y, tw, P.roadD);
+        }
+        // grano del asfalto
+        if (first && w > 6) {
+          const gs = Math.max(0.5, half(w * 0.012));
+          for (let j = 0; j < 4; j++) fill(ctx, half(rL + (rR - rL) * rnd(fb * 5 + j)), y, gs, j % 2 ? P.roadL : P.roadD);
+        }
         if (alt) {
           const lw = Math.max(0.5, half(w * 0.03));
           for (let i = 1; i < LANES; i++) fill(ctx, half(x - w + 2 * w * i / LANES - lw / 2), y, lw, P.lane);
@@ -382,6 +561,8 @@ const Road = (() => {
       const sw = half(x + w * 1.35);
       fill(ctx, rR + rw, y, sw - rR - rw, walk);
       fill(ctx, sw, y, W - sw, side);
+      // matas de pasto en el jardín
+      if (first && w > 4 && rnd(fb + 31) < 0.7) fill(ctx, half(sw + w * (0.1 + rnd(fb + 41) * 0.8)), y, Math.max(0.5, half(w * 0.05)), P.veg1);
     }
     // ojos de gato en las líneas de carril (brillan de noche)
     if (seg.index % 4 === 0 && !seg.start && p1.y <= clipY && p1.w > 6) {
@@ -419,21 +600,52 @@ const Road = (() => {
     quad(ctx, [[xa, ya0], [xa, ya1], [xb, yb1], [xb, yb0]], col);
   }
 
-  function drawWall(ctx, seg) {
+  // Pared del acantilado con textura en perspectiva: una columna de 1 píxel real a la vez, con la
+  // coordenada de textura corregida en perspectiva (1/z). De noche se funde con la textura nocturna
+  // y la niebla se aplica encima según la distancia.
+  function drawWall(ctx, seg, m) {
     const a = seg.p1.screen, b = seg.p2.screen, clip = seg.clip;
     if (seg.p2.camera.z <= CAM_DEPTH) return;
-    const P = PAL[seg.fog], alt = seg.index % 2;
-    const h1 = seg.wh1, h2 = seg.wh2;
-    band(ctx, a, b, WALL_OFF, 0, h1, 0, h2, clip, alt ? P.cliff1 : P.cliff2);
-    // vetas de roca
-    for (const f of [0.22, 0.47, 0.71]) band(ctx, a, b, WALL_OFF, h1 * f, h1 * f + 55, h2 * f, h2 * f + 55, clip, P.cliffD);
-    band(ctx, a, b, WALL_OFF, h1 * 0.5, h1 * 0.5 + 30, h2 * 0.5, h2 * 0.5 + 30, clip, P.cliffL);
-    // vegetación de la Costa Verde
-    if (seg.veg) band(ctx, a, b, WALL_OFF, h1 * seg.veg, h1 * (seg.veg + 0.12), h2 * seg.veg, h2 * (seg.veg + 0.12), clip, P.veg2);
-    band(ctx, a, b, WALL_OFF, h1 * 0.86, h1, h2 * 0.86, h2, clip, P.veg1);
-    band(ctx, a, b, WALL_OFF, h1 * 0.97, h1 + 20, h2 * 0.97, h2 + 20, clip, P.veg2);
-    // pie del acantilado (sombra)
-    band(ctx, a, b, WALL_OFF, 0, 90, 0, 90, clip, P.cliffD);
+    const k = ROAD_W * W / 2 * WALL_OFF;
+    const xa = a.x + a.scale * k, xb = b.x + b.scale * k;
+    const ta = a.y - seg.wh1 * a.scale * YS, tbY = b.y - seg.wh2 * b.scale * YS;
+    if (Math.min(ta, tbY) >= clip) return;
+    const p0 = Math.round(Math.min(xa, xb) * 2), p1 = Math.round(Math.max(xa, xb) * 2);
+    const dxs = xb - xa, u0 = (seg.index % CT_SEGS) / CT_SEGS;
+    const pEnd = Math.min(W * 2, p1);
+    const at = q => {
+      const t = Math.abs(dxs) < 1e-6 ? 0 : (q / 2 + 0.25 - xa) / dxs;
+      const u = t * b.scale / ((1 - t) * a.scale + t * b.scale);
+      return { t, u, col: Math.min(CT_W - 1, Math.floor((u0 + u / CT_SEGS) * CT_W)), yt: ta + (tbY - ta) * t };
+    };
+    for (let p = Math.max(0, p0); p < pEnd;) {
+      // columnas reales vecinas con el mismo texel y casi la misma altura se dibujan juntas
+      const s = at(p);
+      let n = 1;
+      while (p + n < pEnd && n < 6) {
+        const q = at(p + n);
+        if (q.col !== s.col || Math.abs(q.yt - s.yt) > 0.5) break;
+        n++;
+      }
+      const x = p / 2;
+      p += n;
+      const yb = a.y + (b.y - a.y) * s.t, yc = Math.min(yb, clip), yt = s.yt;
+      if (yc <= yt) continue;
+      const hgt = seg.wh1 + (seg.wh2 - seg.wh1) * s.u;
+      const sh = Math.min(CT_H, hgt / CT_WORLD * CT_H) * (yc - yt) / (yb - yt);
+      if (m < 0.999) ctx.drawImage(cliffDay, s.col, 0, 1, sh, x, yt, n / 2, yc - yt);
+      if (m > 0.001) {
+        ctx.globalAlpha = m;
+        ctx.drawImage(cliffNight, s.col, 0, 1, sh, x, yt, n / 2, yc - yt);
+        ctx.globalAlpha = 1;
+      }
+    }
+    // niebla según la distancia (sin cubrir las matas de la cima)
+    if (seg.fog > 0) {
+      ctx.globalAlpha = seg.fog / (FOG - 1) * 0.85;
+      band(ctx, a, b, WALL_OFF, 0, seg.wh1 * 0.97, 0, seg.wh2 * 0.97, clip, PAL[0].fog);
+      ctx.globalAlpha = 1;
+    }
   }
 
   function drawRails(ctx, seg) {
@@ -592,13 +804,11 @@ const Road = (() => {
     ctx.globalAlpha = fog >= 5 ? 1 - (fog - 4) * 0.2 : 1;
     // sombra en el piso
     if (s.shadow && sy <= clipY && !s.lift) {
-      const sw = dw * s.shadow, shh = Math.max(0.5, half(dw * 0.09));
-      ctx.fillStyle = 'rgba(20,8,20,0.32)';
-      ctx.fillRect(half(sx - sw / 2), half(sy - shh / 2), half(sw), shh);
-      ctx.fillRect(half(sx - sw * 0.38), half(sy - shh), half(sw * 0.76), half(shh * 2));
+      const sw = dw * s.shadow * 1.15, shh = Math.max(1, dw * 0.13);
+      ctx.drawImage(shadowC, sx - sw / 2, sy - shh * 0.6, sw, shh);
     } else if (s.lift && sy <= clipY) {
-      const base = sy + s.lift * scale * YS, sw = dw * 0.5;
-      if (base <= clipY) { ctx.fillStyle = 'rgba(20,8,20,0.25)'; ctx.fillRect(half(sx - sw / 2), half(base - 0.5), half(sw), 1); }
+      const base = sy + s.lift * scale * YS, sw = dw * 0.6;
+      if (base <= clipY) ctx.drawImage(shadowC, sx - sw / 2, base - sw * 0.1, sw, sw * 0.2);
     }
     if (s.halo) {
       // brillo dorado alrededor del casco extra
@@ -680,7 +890,7 @@ const Road = (() => {
       const s1 = seg.p1.screen, s2 = seg.p2.screen;
       const put = s => drawObj(ctx, s, s1.scale, s1.x + s1.scale * s.offset * ROAD_W * W / 2, s1.y, seg.clip, v.night, seg.fog);
       // de atrás hacia adelante: acantilado, objetos detrás de las barandas, barandas, objetos junto a la pista
-      drawWall(ctx, seg);
+      drawWall(ctx, seg, v.night);
       for (const s of seg.sprites) if (s.offset < RAIL_OFF || s.offset > CURB_OFF) put(s);
       drawRails(ctx, seg);
       for (const s of seg.sprites) if (s.offset >= RAIL_OFF && s.offset <= CURB_OFF) put(s);
@@ -716,8 +926,9 @@ const Road = (() => {
   }
 
   return {
-    build, render, drawBackdrop, drawSeaBand, segAt,
+    build, render, drawBackdrop, drawSeaBand, drawSunFlare, segAt,
     SEG, ROAD_W, DRAW, PLAYER_Z, HORIZON,
     get trackLength() { return trackLength; },
+    get shadow() { return shadowC; },
   };
 })();

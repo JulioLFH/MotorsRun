@@ -1,7 +1,7 @@
 'use strict';
 // MotorsRun - carrera retro en tercera persona por la Costa Verde.
 (() => {
-  const VERSION = 'v1.10.0';
+  const VERSION = 'v1.11.0';
   const W = 384, H = 216;
   const cvs = document.getElementById('game');
   const wrap = document.getElementById('wrap');
@@ -55,36 +55,60 @@
   }
   setFavicon();
 
-  // ---------- Tablero analógico ----------
+  // ---------- Tablero: relojes con bisel cromado y arco de LEDs ----------
   const A0 = 0.75 * Math.PI, SWEEP = 1.5 * Math.PI, DIAL_MAX = 300;
-  function dialFace(kind) {
-    const { c, g } = Pix.canvas(46, 46);
-    const cx = 23, cy = 23, r = 21;
-    Pix.disc(g, cx, cy, r, '#3a2a20');
-    Pix.disc(g, cx, cy, r - 1, '#c8b890');
-    Pix.disc(g, cx, cy, r - 3, '#1a120e');
-    const n = kind === 'speed' ? 12 : 4;
-    for (let i = 0; i <= n; i++) {
-      const a = A0 + i / n * SWEEP, major = kind === 'speed' ? i % 3 === 0 : true;
-      const red = kind === 'speed' ? i >= 10 : i === 0;
-      const r0 = major ? r - 9 : r - 7;
-      Pix.line(g, cx + Math.cos(a) * r0, cy + Math.sin(a) * r0, cx + Math.cos(a) * (r - 5), cy + Math.sin(a) * (r - 5), red ? '#e8343a' : '#e8d8b0');
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const mixc = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
+  // esfera a resolución real (2x): bisel cromado iluminado arriba a la izquierda, fondo oscuro y reflejo del cristal
+  function dialFace(r) {
+    const S = r * 2 + 2, N = S * 2, R = r * 2, cx = S, cy = S;
+    const { c, g } = Pix.canvas(N, N);
+    const img = g.createImageData(N, N), d = img.data;
+    const cD = rgb('#2a2d36'), cL = rgb('#f4f6fa'), fIn = rgb('#2c2022'), fOut = rgb('#0c0809');
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        const dx = x + 0.5 - cx, dy = y + 0.5 - cy, dd = Math.hypot(dx, dy);
+        if (dd > R) continue;
+        let col;
+        if (dd > R - 1.2) col = [8, 4, 6];
+        else if (dd > R - 6) {
+          const k = 0.5 + 0.5 * Math.cos(Math.atan2(dy, dx) + 0.75 * Math.PI);
+          col = mixc(cD, cL, Math.round(k * k * 6) / 6);
+          if (dd > R - 3.6 && dd < R - 2.6) col = mixc(col, [255, 255, 255], 0.18);
+        } else if (dd > R - 7.5) col = [6, 3, 4];
+        else {
+          col = mixc(fIn, fOut, Math.min(1, dd / (R - 7.5)));
+          if (dx + dy < -R * 0.45 && dd < R - 9) col = mixc(col, [255, 240, 230], 0.08);
+        }
+        const o = (y * N + x) * 4;
+        d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
+      }
     }
-    if (kind === 'speed') PixelFont.draw(g, 'KM/H', cx, cy - 9, '#8a7a60', 1, 'center');
-    else {
-      PixelFont.draw(g, 'E', cx - 11, cy + 9, '#e8343a', 1, 'center');
-      PixelFont.draw(g, 'F', cx + 11, cy + 9, '#e8d8b0', 1, 'center');
-      g.drawImage(SPR.fuelIcon, cx - 3, cy - 12);
+    g.putImageData(img, 0, 0);
+    return c;
+  }
+  const SPEED_R = 26, FUEL_R = 19;
+  const FACE_SPEED = dialFace(SPEED_R), FACE_FUEL = dialFace(FUEL_R);
+  // arco de LEDs: n celdas encendidas hasta frac, cada una con el color que le toca
+  function leds(cx, cy, r, n, frac, colorAt, off = '#2c2226') {
+    for (let i = 0; i < n; i++) {
+      const f = (i + 0.5) / n, a = A0 + f * SWEEP, on = f <= frac;
+      ctx.fillStyle = on ? colorAt(f) : off;
+      for (const rr of [r - 1.5, r]) ctx.fillRect(Math.round((cx + Math.cos(a) * rr) * 2) / 2 - 0.5, Math.round((cy + Math.sin(a) * rr) * 2) / 2 - 0.5, 1.5, 1.5);
     }
-    Pix.px(g, cx - 12, cy - 13, 'rgba(255,255,255,0.4)'); Pix.px(g, cx - 13, cy - 11, 'rgba(255,255,255,0.4)'); Pix.px(g, cx - 10, cy - 14, 'rgba(255,255,255,0.4)');
-    return Pix.enhance(c, { outline: false, shade: false });
   }
-  const FACE_SPEED = dialFace('speed'), FACE_FUEL = dialFace('fuel');
-  function needle(cx, cy, len, frac, col) {
-    const a = A0 + clamp(frac, 0, 1) * SWEEP;
-    Pix.line(ctx, cx, cy, cx + Math.cos(a) * len, cy + Math.sin(a) * len, col);
-    Pix.disc(ctx, cx, cy, 1, '#e8d8b0');
+  // panel del HUD: vidrio oscuro con esquinas redondeadas, brillo arriba y sombra abajo
+  function panel(x, y, w, h, accent = 'rgba(255,214,150,0.5)') {
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(x + 2, y + 1, w - 2, h); ctx.fillRect(x + 1, y + 2, w, h - 2);
+    ctx.fillStyle = 'rgba(16,8,14,0.78)';
+    ctx.fillRect(x + 1, y, w - 2, h); ctx.fillRect(x, y + 1, w, h - 2);
+    ctx.fillStyle = accent; ctx.fillRect(x + 1, y, w - 2, 0.5);
+    ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(x + 1, y + 0.5, w - 2, h / 2 - 0.5);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x + 1, y + h - 0.5, w - 2, 0.5);
   }
+  const GOLD = ['#ffffff', '#fff2c8', '#ffd96a', '#ffb347', '#ff8a3a'];
+  const ICE = ['#ffffff', '#e0f8ff', '#9ae6ff', '#5ad1ff', '#2fa0e8'];
   function roundButton(label, col) {
     const { c, g } = Pix.canvas(40, 40);
     Pix.disc(g, 20, 20, 18, 'rgba(20,10,12,0.55)');
@@ -634,9 +658,7 @@
   function drawBike() {
     const g = G;
     const bx = W / 2, by = H - 5 - g.bounce;
-    ctx.fillStyle = 'rgba(20,8,16,0.35)';
-    ctx.fillRect(bx - 12, by - 1, 24, 3);
-    ctx.fillRect(bx - 8, by - 2, 16, 5);
+    ctx.drawImage(Road.shadow, bx - 18 + Math.sin(g.lean) * 6, by - 3.5 + g.bounce, 36, 8);
 
     if (g.night > 0.05 && state === 'play' && !g.stall) {
       ctx.globalCompositeOperation = 'lighter';
@@ -689,43 +711,84 @@
 
   function drawHUD() {
     const g = G, bk = g.bike;
-    ctx.fillStyle = 'rgba(24,10,12,0.72)';
-    ctx.fillRect(0, 0, W, 13);
-    Pix.rect(ctx, 0, 13, W, 1, 'rgba(240,226,192,0.35)');
+    // vidas
     const slots = Math.max(3, g.lives);
-    for (let i = 0; i < slots; i++) ctx.drawImage(i < g.lives ? SPR.helmetOn : SPR.helmetOff, 3 + i * 9, 3);
+    panel(2, 2, slots * 9 + 5, 13);
+    for (let i = 0; i < slots; i++) ctx.drawImage(i < g.lives ? SPR.helmetOn : SPR.helmetOff, 5 + i * 9, 4);
     // cuenta regresiva para el próximo casco extra
     if (state === 'play' && g.countdown <= 0) {
       const s = Math.max(0, Math.ceil(g.helmetT));
       const txt = g.helmetOut ? '¡CASCO EN LA PISTA!' : g.lives >= MAX_LIVES ? 'CASCOS AL MÁXIMO' : 'CASCO EXTRA EN ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-      PixelFont.draw(ctx, txt, 3, 16, g.helmetOut && Math.sin(t * 8) > 0 ? '#ffd23f' : '#d8c8a0', 1, 'left', '#1a0a0a');
+      PixelFont.draw(ctx, txt, 4, 19, g.helmetOut && Math.sin(t * 8) > 0 ? '#ffd23f' : '#d8c8a0', 1, 'left', '#1a0a0a');
     }
-    const cx0 = 6 + slots * 9;
-    ctx.drawImage(SP.coin[0], cx0, 2, 9, 9);
-    PixelFont.draw(ctx, 'S/' + g.coins, cx0 + 12, 4, '#ffd23f');
-    PixelFont.draw(ctx, String(Math.floor(g.score)).padStart(6, '0'), W / 2, 4, '#fff2d0', 1, 'center');
-    const km = g.dist / UNITS_PER_M / 1000;
-    PixelFont.draw(ctx, DISTRICTS[Math.floor(km) % DISTRICTS.length] + ' · ' + km.toFixed(2) + ' KM', W - 22, 4, '#f0e2c0', 1, 'right');
-    Pix.rect(ctx, W - 12, 3, 2, 7, '#f0e2c0'); Pix.rect(ctx, W - 8, 3, 2, 7, '#f0e2c0');
+    // billetera de la partida
+    const cx0 = slots * 9 + 10, ctxt = 'S/' + g.coins;
+    panel(cx0, 2, PixelFont.width(ctxt) + 18, 13);
+    ctx.drawImage(SP.coin[0], cx0 + 3, 4, 9, 9);
+    PixelFont.draw(ctx, ctxt, cx0 + 14, 6, '#ffd23f', 1, 'left', '#3a2008');
+    // puntaje grande al centro con degradado dorado
+    panel(W / 2 - 30, 2, 60, 15);
+    PixelFont.draw(ctx, String(Math.floor(g.score)).padStart(6, '0'), W / 2 + 1, 5, '#2a1008', 2, 'center');
+    PixelFont.draw(ctx, String(Math.floor(g.score)).padStart(6, '0'), W / 2, 4, r => GOLD[r], 2, 'center');
+    // distrito y kilómetro
+    const km = g.dist / UNITS_PER_M / 1000, dtxt = DISTRICTS[Math.floor(km) % DISTRICTS.length], ktxt = km.toFixed(2) + ' KM';
+    const dw = PixelFont.width(dtxt) + PixelFont.width(ktxt) + 14;
+    panel(W - 20 - dw, 2, dw, 13);
+    PixelFont.draw(ctx, dtxt, W - 16 - dw, 6, '#f0e2c0', 1, 'left', '#1a0a0a');
+    PixelFont.draw(ctx, ktxt, W - 24, 6, '#ffb347', 1, 'right', '#1a0a0a');
+    panel(W - 17, 2, 15, 13);
+    Pix.rect(ctx, W - 12, 5, 2, 7, '#f0e2c0'); Pix.rect(ctx, W - 8, 5, 2, 7, '#f0e2c0');
 
-    // velocímetro (marca la máxima de la moto)
-    const kmh = Math.round(g.speed / U);
-    ctx.drawImage(FACE_SPEED, 3, H - 49, 46, 46);
+    // velocímetro: arco de LEDs verde → amarillo → rojo, máxima de la moto marcada y lectura digital
+    const kmh = Math.round(g.speed / U), sx = 3 + SPEED_R + 1, sy = H - 4 - SPEED_R;
+    ctx.drawImage(FACE_SPEED, sx - SPEED_R - 1, sy - SPEED_R - 1, SPEED_R * 2 + 2, SPEED_R * 2 + 2);
+    leds(sx, sy, SPEED_R - 6, 32, kmh / DIAL_MAX, f => g.turbo ? (f < 0.6 ? '#5ad1ff' : '#e0f8ff') : f < 0.55 ? '#5aff8a' : f < 0.78 ? '#ffd23f' : '#ff4a3d');
     const am = A0 + clamp(bk.max / DIAL_MAX, 0, 1) * SWEEP;
-    Pix.line(ctx, 26 + Math.cos(am) * 16, H - 26 + Math.sin(am) * 16, 26 + Math.cos(am) * 19, H - 26 + Math.sin(am) * 19, '#7dff9a');
-    needle(26, H - 26, 15, kmh / DIAL_MAX, '#ff4a3d');
-    Pix.rect(ctx, 16, H - 17, 21, 7, '#0a0605');
-    PixelFont.draw(ctx, String(kmh).padStart(3, '0'), 26, H - 16, g.turbo ? '#5ad1ff' : '#ffb347', 1, 'center');
+    Pix.line(ctx, sx + Math.cos(am) * (SPEED_R - 9), sy + Math.sin(am) * (SPEED_R - 9), sx + Math.cos(am) * (SPEED_R - 4), sy + Math.sin(am) * (SPEED_R - 4), '#ffffff');
+    if (g.turbo) {
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5 + Math.sin(t * 30) * 0.2;
+      ctx.drawImage(SP.glowBlue, sx - 26, sy - 26, 52, 52);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
+    PixelFont.draw(ctx, String(kmh).padStart(3, '0'), sx + 1, sy - 4, '#000000', 2, 'center');
+    PixelFont.draw(ctx, String(kmh).padStart(3, '0'), sx, sy - 5, r => (g.turbo ? ICE : GOLD)[r], 2, 'center');
+    PixelFont.draw(ctx, 'KM/H', sx, sy + 8, '#8a7a70', 1, 'center');
+    // placa con el modelo de la moto
+    const mw = PixelFont.width(bk.model) + 8;
+    panel(sx + SPEED_R + 4, H - 15, mw, 11);
+    PixelFont.draw(ctx, bk.model, sx + SPEED_R + 8, H - 12, '#f0e2c0', 1, 'left', '#0a0605');
 
-    // gasolina y nitro
-    ctx.drawImage(FACE_FUEL, W - 49, H - 49, 46, 46);
-    needle(W - 26, H - 26, 15, g.fuel / 100, g.fuel < 22 && Math.sin(t * 12) > 0 ? '#ffffff' : '#ff4a3d');
-    PixelFont.draw(ctx, 'NITRO +' + Math.round(bk.nitro * 100) + '%', W - 98, H - 13, '#5ad1ff', 1, 'left', '#0a0605');
-    Pix.rect(ctx, W - 99, H - 7, 46, 5, '#0a0605');
-    Pix.rect(ctx, W - 98, H - 6, Math.round(44 * g.nitro / 100), 3, g.turbo && Math.sin(t * 30) > 0 ? '#e0f8ff' : '#2fb8ff');
-    PixelFont.draw(ctx, bk.model, 52, H - 13, '#f0e2c0', 1, 'left', '#0a0605');
+    // gasolina: arco de LEDs que parpadea en rojo cuando queda poca
+    const fx = W - 3 - FUEL_R - 1, fy = H - 4 - FUEL_R, low = g.fuel < 22;
+    ctx.drawImage(FACE_FUEL, fx - FUEL_R - 1, fy - FUEL_R - 1, FUEL_R * 2 + 2, FUEL_R * 2 + 2);
+    leds(fx, fy, FUEL_R - 5.5, 14, g.fuel / 100, f => low ? (Math.sin(t * 12) > 0 ? '#ff4a3d' : '#5a1a1a') : f < 0.25 ? '#ff7a3a' : '#ffd23f');
+    ctx.drawImage(SPR.fuelIcon, fx - 3, fy - 6);
+    PixelFont.draw(ctx, 'E', fx - 7, fy + 7, '#ff5a4a', 1, 'center');
+    PixelFont.draw(ctx, 'F', fx + 7, fy + 7, '#d8c8a0', 1, 'center');
 
-    if (g.fuel < 22 && !g.stall && Math.sin(t * 10) > 0) PixelFont.outline(ctx, '¡POCA GASOLINA!', W / 2, 20, '#ff5a4a', '#1a0a0a', 1, 'center');
+    // nitro: barra de celdas con brillo cuando está activo
+    const nw = 12, nx = fx - FUEL_R - 8 - nw * 5, ny = H - 11;
+    panel(nx - 4, H - 23, nw * 5 + 7, 20, 'rgba(90,209,255,0.6)');
+    PixelFont.draw(ctx, 'NITRO', nx, H - 20, '#5ad1ff', 1, 'left', '#0a0605');
+    PixelFont.draw(ctx, '+' + Math.round(bk.nitro * 100) + '%', nx + nw * 5 - 1, H - 20, '#9ae6ff', 1, 'right', '#0a0605');
+    const cells = g.nitro / 100 * nw;
+    for (let i = 0; i < nw; i++) {
+      const on = clamp(cells - i, 0, 1);
+      Pix.rect(ctx, nx + i * 5, ny, 4, 5, '#0a1620');
+      if (on > 0) {
+        ctx.globalAlpha = 0.35 + 0.65 * on;
+        Pix.rect(ctx, nx + i * 5, ny, 4, 5, g.turbo && Math.sin(t * 30 + i) > 0 ? '#e0f8ff' : i < nw * 0.5 ? '#2fa0e8' : '#5ad1ff');
+        Pix.rect(ctx, nx + i * 5, ny, 4, 1, 'rgba(255,255,255,0.45)');
+        ctx.globalAlpha = 1;
+      }
+    }
+    if (g.turbo) {
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35;
+      ctx.drawImage(SP.glowBlue, nx - 10, ny - 14, nw * 5 + 20, 32);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
+
+    if (low && !g.stall && Math.sin(t * 10) > 0) PixelFont.outline(ctx, '¡POCA GASOLINA!', W - 4, fy - FUEL_R - 9, '#ff5a4a', '#1a0a0a', 1, 'right');
 
     if (touchMode && state === 'play') {
       ctx.globalAlpha = 0.75;
@@ -813,6 +876,7 @@
     drawBike();
     drawParticles();
     ctx.restore();
+    Road.drawSunFlare(ctx, g.night);
     if (fire && g.crash.flash > 0) {
       ctx.fillStyle = `rgba(255,240,200,${g.crash.flash * 0.75})`;
       ctx.fillRect(0, 0, W, H);

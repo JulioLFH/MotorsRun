@@ -1,5 +1,21 @@
 # Versiones de MotorsRun
 
+## v1.11.0: Gráfica renovada
+- **Acantilado de la Costa Verde con textura real** proyectada en perspectiva columna por columna:
+  cárcavas verticales de erosión, estratos, canto rodado, mallas con vegetación, enredaderas que cuelgan
+  y la cima verde con borde irregular. Versión nocturna azulada y niebla según la distancia.
+  Reemplaza a las franjas de color plano que se veían como cartón.
+- **Pista con más vida:** franja de aceite al centro de cada carril y grano del asfalto que pasa con la velocidad.
+  La línea de partida es ahora un tablero de dos filas (antes llenaba la pista y hacía moiré).
+- **Mar y playa:** crestas de espuma en el mar, arena mojada junto a la orilla y matas de pasto en el jardín.
+- **Cielo:** nubes de atardecer con volumen (base plana, encendidas desde abajo y malva arriba),
+  cerros con laderas iluminadas por el sol y bruma al pie, bruma sobre el horizonte y destellos de lente del sol.
+- **Sombras suaves** y elípticas bajo la moto, los carros y todos los objetos.
+- **Tablero nuevo:** paneles de vidrio oscuro con esquinas redondeadas; puntaje grande con degradado dorado;
+  velocímetro con bisel cromado, arco de LEDs verde → amarillo → rojo, marca de la máxima de la moto y lectura
+  digital (se pone azul con el nitro); gasolina con arco de LEDs que parpadea en rojo; nitro en celdas que brillan
+  al usarlo; aviso de poca gasolina junto a su reloj para no tapar los letreros de kilómetro.
+
 ## v1.10.0: Casco extra cada 5 minutos y escenario con más vida
 - **Casco extra:** cada 5 minutos de recorrido aparece un casco dorado brillante en la pista con el aviso
   "¡CASCO EXTRA!". Al recogerlo ganas **+1 vida** (máximo 5). Si se te pasa, vuelve a aparecer a los 30 segundos.
